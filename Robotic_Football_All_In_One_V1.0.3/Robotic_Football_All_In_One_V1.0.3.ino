@@ -544,23 +544,27 @@ void driveCtrl()
 
 #ifdef ROTATION_LOCK
   sample++;
+  if (PS3.getButtonClick(L3))
+  {
+      gyro.getEvent(&rotationReadout);
+      desiredRotation = rotationReadout.orientation.x;
+      PS3.setRumbleOn(10, 255, 10, 255); //vibrate!   
+   }
+   if(wasIturning && !turning)//if I was turning but now I've stopped
+   {
+      gyro.getEvent(&rotationReadout);                   //reset the orientation reference
+      desiredRotation = rotationReadout.orientation.x;
+      wasIturning = 0;
+   }
   if(turnInput)
   {
     rotationCorrect = 0;
     wasIturning = 1;
   }
-  else if ((sample >= SAMPLE_PERIOD) || wasIturning)
+  else if ((sample >= SAMPLE_PERIOD))
   {
     sample = 0;
-    wasIturning = 0;
     gyro.getEvent(&rotationReadout);
-
-    /*if (turnInput) desiredRotation = rotationReadout.orientation.x;
-    else */if (PS3.getButtonClick(L3))
-    {
-      desiredRotation = rotationReadout.orientation.x;
-      PS3.setRumbleOn(10, 255, 10, 255); //vibrate!
-    }
 
     int difference = rotationReadout.orientation.x - desiredRotation;
     if ((difference < 0 && difference > -180) || difference > 180) 
