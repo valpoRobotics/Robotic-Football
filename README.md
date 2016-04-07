@@ -16,10 +16,12 @@ This is the single-file code for the robotic football team. The design philosoph
 This example would create a robot that uses an omniwheel drivetrain (specifically our quarterback), with the led strip and tackle sensor enabled. This robot is also using the new rotation locking compass. At the end of the file are a list of error cases that the compile goes through to make sure no incompatable options are shown.
 
 #### Useful Libraries
+---
 1. (PS3 Integration) [USB HostShield 2.0](https://github.com/felis/USB_Host_Shield_2.0)
 2. (Omniwheel Rotation Locking) [Adafruit BNO055](https://github.com/adafruit/Adafruit_BNO055)
 
 #### Controls
+---
   - **Basic Drivetrain**
     - _Up/Down Left Joystick_ - Forward and Backward movement
     - _Left/Right Right Joystick_ - Turning
