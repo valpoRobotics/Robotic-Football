@@ -50,6 +50,6 @@ This example would create a robot that uses an omniwheel drivetrain (specificall
       - _L2_ - hold to enable throw offset 
         - _Up/Down D-Pad_ - adjust power of all throws but triangle
   - **Kicker**
-    - Kicker_ currently uses basic drivetrain
+    - Kicker - currently uses basic drivetrain
     - _CROSS_ - kick
     - _TRIANGLE_ - reload
