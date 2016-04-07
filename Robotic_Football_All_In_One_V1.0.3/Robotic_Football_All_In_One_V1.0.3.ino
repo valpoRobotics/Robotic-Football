@@ -1,6 +1,5 @@
 /*
    THE ALL-IN-ONE-PACKAGE - Robotic Football Edition!!!
-   Principle Author: Aaron Roggow aaron.roggow@valpo.edu 618-477-7092
 */
 
 /*
