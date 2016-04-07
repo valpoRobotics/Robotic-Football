@@ -554,10 +554,6 @@ void driveCtrl()
       rotationCorrect = 0;
       PS3.setRumbleOn(10, 255, 10, 255); //vibrate! 
       sample = 0;  
-      /*Serial.print("DO: ");
-      Serial.println(desiredRotation);
-      Serial.print("RO: ");
-      Serial.println(rotationReadout.orientation.x);*/
    }
    
   if(turnInput)
@@ -571,12 +567,6 @@ void driveCtrl()
   {
     sample = 0;
     gyro.getEvent(&rotationReadout);
-/*
-    Serial.print("DO: ");
-    Serial.println(desiredRotation);
-    Serial.print("RO: ");
-    Serial.println(rotationReadout.orientation.x);
-*/    
     int difference = rotationReadout.orientation.x - desiredRotation;
     if ((difference < 0 && difference > -180) || difference > 180) 
     {                                                   //turning left condition
@@ -585,11 +575,7 @@ void driveCtrl()
     else                                                //turning right condition
     {
       difference = abs(difference + 360) % 360;
-    }
- /*   
-    Serial.print("Difference: ");
-    Serial.println(difference);
-*/    
+    }  
     if (difference > MINIMUM_ANGLE)
     {
       rotationCorrect = -ROTATION_CORRECT_MAGNITUDE;
@@ -614,10 +600,6 @@ void driveCtrl()
         rotationCorrect = 0;
       }
     }
-/*    
-    Serial.print("rotationCorrect: ");
-    Serial.println(rotationCorrect);
-*/    
   }
   
 #endif
@@ -659,24 +641,7 @@ void driveCtrl()
   motor2.write(motor2Input);
   motor3.write(motor3Input);
   motor4.write(motor4Input);
-/*
-  #ifdef ROTATION_LOCK
-    if(wasIturning && !turnInput && abs(motor1Input-90)<3)//if I was turning but now I've stopped
-   {
-      gyro.getEvent(&rotationReadout);
-      desiredRotation = rotationReadout.orientation.x;
-      rotationCorrect = 0;
-      PS3.setRumbleOn(10, 255, 10, 255); //vibrate! 
-      wasIturning = 0;
-     
-      /*
-      Serial.print("DO: ");
-      Serial.println(desiredRotation);
-      Serial.print("RO: ");
-      Serial.println(rotationReadout.orientation.x);
-      
-   }
-  #endif*/
+
 #endif
 }
 
