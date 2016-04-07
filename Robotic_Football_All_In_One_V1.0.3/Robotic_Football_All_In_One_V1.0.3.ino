@@ -137,6 +137,7 @@ int xInput, yInput, throttleL, throttleR;
 #define PI_OVER_2             M_PI/2
 #define PI_OVER_4             M_PI/4
 #define TURN_HANDICAP_AMOUNT  1
+#define MAX_TURN 14
 
 Servo motor1, motor2, motor3, motor4;
 int motor1Drive, motor2Drive, motor3Drive, motor4Drive;
@@ -162,8 +163,9 @@ Servo centerRelease;
 Servo qbThrower;
 #define TRIANGLE_THROW        175
 #define CIRCLE_THROW          125
-#define CROSS_THROW           118
-#define SQUARE_THROW          101
+#define CROSS_THROW           108
+
+#define SQUARE_THROW          102
 #define RELOAD_THROW          88
 int throwOffset = 0;                //used to adjust strength of cross and circle throws
 #endif
@@ -177,8 +179,8 @@ Servo kicker;
 
 #ifdef ROTATION_LOCK
 #define MINIMUM_ANGLE               5
-#define SAMPLE_PERIOD               40
-#define ROTATION_CORRECT_MAGNITUDE  4
+#define SAMPLE_PERIOD               50
+#define ROTATION_CORRECT_MAGNITUDE  5
 Adafruit_BNO055 gyro = Adafruit_BNO055(55); //our rotation sensor;
 int rotationCorrect = 0;
 int desiredRotation = 0;
@@ -508,7 +510,7 @@ void driveCtrl()
   yInput = map(PS3.getAnalogHat(LeftHatY), 0, 255, 90, -90);      // Recieves PS3 forward/backward input
   xInput = map(PS3.getAnalogHat(LeftHatX), 0, 255, 90, -90);      // Recieves PS3 horizontal input and 
                                                                   // sets it to an inverted scale of 90 to -90
-  turnInput = map(PS3.getAnalogHat(RightHatX), 0, 255, -11, 11);  // received turn input from right joystick
+  turnInput = map(PS3.getAnalogHat(RightHatX), 0, 255, -MAX_TURN, MAX_TURN);  // received turn input from right joystick
   if (!PS3.getButtonPress(L2))
   {
     if (PS3.getButtonPress(UP))
@@ -542,26 +544,29 @@ void driveCtrl()
   //magn = map(magn, 0, float(90) * sqrt(2.0), 0, 60);// need to investigate the purpose of this
   angle = atan2(double(yInput), double(xInput));      // atan2 accounts for quadrants of input
 
+
 #ifdef ROTATION_LOCK
   sample++;
+  if (PS3.getButtonClick(R3))
+  {
+      gyro.getEvent(&rotationReadout);
+      desiredRotation = rotationReadout.orientation.x;
+      rotationCorrect = 0;
+      PS3.setRumbleOn(10, 255, 10, 255); //vibrate! 
+      sample = 0;  
+   }
+   
   if(turnInput)
   {
     rotationCorrect = 0;
     wasIturning = 1;
+    sample = 0;
   }
-  else if ((sample >= SAMPLE_PERIOD) || wasIturning)
+  
+  else if ((sample >= SAMPLE_PERIOD))
   {
     sample = 0;
-    wasIturning = 0;
     gyro.getEvent(&rotationReadout);
-
-    /*if (turnInput) desiredRotation = rotationReadout.orientation.x;
-    else */if (PS3.getButtonClick(L3))
-    {
-      desiredRotation = rotationReadout.orientation.x;
-      PS3.setRumbleOn(10, 255, 10, 255); //vibrate!
-    }
-
     int difference = rotationReadout.orientation.x - desiredRotation;
     if ((difference < 0 && difference > -180) || difference > 180) 
     {                                                   //turning left condition
@@ -570,8 +575,7 @@ void driveCtrl()
     else                                                //turning right condition
     {
       difference = abs(difference + 360) % 360;
-    }
-
+    }  
     if (difference > MINIMUM_ANGLE)
     {
       rotationCorrect = -ROTATION_CORRECT_MAGNITUDE;
@@ -584,9 +588,24 @@ void driveCtrl()
     {
       rotationCorrect = 0;
     }
+
+    if(wasIturning)
+    {
+      if (difference == 0)
+      {
+        wasIturning = 0;
+      }
+      else
+      {
+        rotationCorrect = 0;
+      }
+    }
   }
   
 #endif
+  Serial.print(rotationCorrect);
+  Serial.print("   ");
+  Serial.println(desiredRotation);
 
   motor4Drive = ((magn * (sin(angle + PI_OVER_4 + motorReverse)) / handicap)
                 + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
@@ -622,6 +641,7 @@ void driveCtrl()
   motor2.write(motor2Input);
   motor3.write(motor3Input);
   motor4.write(motor4Input);
+
 #endif
 }
 
@@ -632,20 +652,20 @@ void qbThrowerCtrl()
   {
     if (PS3.getButtonClick(UP))
     {
-      throwOffset += 5;
+      throwOffset += 2;
       PS3.setRumbleOn(5, 255, 5, 0); //vibrate on the left!
     }
     else if (PS3.getButtonClick(DOWN))
     {
-      throwOffset -= 5;
+      throwOffset -= 2;
       PS3.setRumbleOn(5, 0, 5, 255); //vibrate on the right!
     }
   }
 
   if (PS3.getButtonPress(TRIANGLE))    qbThrower.write(TRIANGLE_THROW);
   else if (PS3.getButtonPress(CIRCLE)) qbThrower.write(CIRCLE_THROW + throwOffset);
-  else if (PS3.getButtonPress(CROSS))  qbThrower.write(CROSS_THROW);
-  else if (PS3.getButtonPress(SQUARE)) qbThrower.write(SQUARE_THROW);
+  else if (PS3.getButtonPress(CROSS))  qbThrower.write(CROSS_THROW + throwOffset);
+  else if (PS3.getButtonPress(SQUARE)) qbThrower.write(SQUARE_THROW + throwOffset) ;
   else if (PS3.getButtonPress(R1))
   {
     qbThrower.write(RELOAD_THROW);
