@@ -136,7 +136,7 @@ int xInput, yInput, throttleL, throttleR;
 #define PI_OVER_2             M_PI/2
 #define PI_OVER_4             M_PI/4
 #define TURN_HANDICAP_AMOUNT  1
-#define MAX_TURN 14
+#define MAX_TURN              14
 
 Servo motor1, motor2, motor3, motor4;
 int motor1Drive, motor2Drive, motor3Drive, motor4Drive;
@@ -476,12 +476,9 @@ void driveCtrl()
     return;
   }
 
-                                                  // Instead of following some sort of
-                                                  // equation to slow down acceleration
-                                                  // We just increment the speed by one
-                                                  // towards the desired speed.
-                                                  // The acceleration is then slowed 
-                                                  // because of the loop cycle time
+                                                  // Instead of following some sort of equation to slow down acceleration
+                                                  // We just increment the speed by one towards the desired speed.
+                                                  // The acceleration is then slowed because of the loop cycle time
 
   if (drive < yInput)drive++;                     // Accelerates
   else if (drive > yInput) drive--;               // Decelerates
