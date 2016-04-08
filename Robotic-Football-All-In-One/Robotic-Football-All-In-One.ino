@@ -209,73 +209,36 @@ void driveCtrl();
 void kickerCtrl();
 void qbCtrl();
 void flashLed();
+void setupDrivetrain();
+void setupLED();
+void setupPeripherals();
+void setupSerial();
+void setupRotationLock();
+void firstConnectRoutine();
+void calibrationCtrl();
+void stateHandling();
 
 void setup() {
-#ifdef BASIC_DRIVETRAIN
-  leftMotor.attach(LEFT_MOTOR, 1000, 2000);
-  leftMotor.writeMicroseconds(1500); //stopped
-  rightMotor.attach(RIGHT_MOTOR, 1000, 2000);
-  rightMotor.writeMicroseconds(1500);
-#endif
 
-#ifdef OMNIWHEEL_DRIVETRAIN
-  motor1.attach(MOTOR_1, 1000, 2000);
-  motor1.writeMicroseconds(1500);
-  motor2.attach(MOTOR_2, 1000, 2000);
-  motor2.writeMicroseconds(1500);
-  motor3.attach(MOTOR_3, 1000, 2000);
-  motor3.writeMicroseconds(1500);
-  motor4.attach(MOTOR_4, 1000, 2000);
-  motor4.writeMicroseconds(1500);
-#endif
+  setupDrivetrain();
 
 #ifdef LED_STRIP
-  pinMode(BLUE_LED, OUTPUT);
-  pinMode(GREEN_LED, OUTPUT);
-
-  flashLed();
+  setupLED();
 #endif
 
 #ifdef TACKLE
   pinMode(TACKLE_INPUT, INPUT);
 #endif
 
-#ifdef CENTER_PERIPHERALS
-  centerRelease.attach(CENTER_RELEASE);
-  centerRelease.write(CENTER_RELEASE_UP);
-#endif
+  setupPeripherals();
 
-#ifdef QB_PERIPHERALS
-  qbThrower.attach(QB_THROWER);
-  qbThrower.writeMicroseconds(1500);
-#endif
-
-#ifdef KICKER_PERIPHERALS
-  kicker.attach(KICKER_MOTOR);
-  kicker.writeMicroseconds(1500);
-#endif
-
-
-  //Begin Serial Communications
-  Serial.begin(115200);
-  if (Usb.Init() == -1)                 // this is for an error message with USB connections
-  {                               
-    Serial.print(F("\r\nOSC did not start"));
-    while (1);
-  }
-  Serial.print(F("\r\nPS3 Bluetooth Library Started"));
-
+  setupSerial();
+  
 #ifdef ROTATION_LOCK
-  if (!gyro.begin())
-  {
-    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-    while (1)
-    {
-      flashLed();
-    }
-  }
+  setupRotationLock();
 #endif
 }
+
 
 void loop()
 {
@@ -284,50 +247,14 @@ void loop()
   if (PS3.PS3Connected)                 // This only lets the program run if the PS3 
                                         // controller is connected.
   {
+    if (newconnect == 0) firstConnectRoutine();              // this is the vibration that you feel when you first connect
+    
     if (PS3.getButtonClick(PS)) {
       PS3.disconnect();
       newconnect = 0;
     }
-    if (newconnect == 0)                // this is the vibration that you feel when you 
-                                        // first connect
-    { 
-      newconnect++;
-      //Serial.println("Rumble is on!");
-      PS3.moveSetRumble(64);
-      PS3.setRumbleOn(100, 255, 100, 255); //VIBRATE!!!
 
-#ifdef ROTATION_LOCK
-      gyro.getEvent(&rotationReadout);
-      desiredRotation = rotationReadout.orientation.x; // setting up our baseline value
-#endif
-    }
-
-    if (state == CALIBRATION)
-    {                                     //CALIBRATION MODE
-      if (PS3.getButtonClick(UP))
-      {
-        motorCorrect++;
-        PS3.setRumbleOn(5, 255, 5, 0);    //vibrate ON THE LEFT!
-      }
-      else if (PS3.getButtonClick(DOWN))
-      {
-        motorCorrect--;
-        PS3.setRumbleOn(5, 0, 5, 255);    //vibrate ON THE RIGHT!
-      }
-      else if (PS3.getButtonClick(SELECT))
-      {
-        state = DRIVING;
-        PS3.setLedRaw(1);                 // OFF OFF OFF ON
-        PS3.setRumbleOn(5, 0, 5, 255);    //should vibrate left, then right, then both
-        PS3.setRumbleOn(5, 255, 5, 0);
-        PS3.setRumbleOn(5, 255, 5, 255);
-      }
-      if (PS3.getButtonClick(PS)) {
-        PS3.disconnect();
-        newconnect = 0;
-      }
-      eStop();
-    }
+    if (state == CALIBRATION) calibrationCtrl();
     else
     {                                     // NORMAL OPERATION MODE
 #ifdef TACKLE                             // this fancy bit here changes the condition 
@@ -340,30 +267,7 @@ void loop()
       if (state == DRIVING || state == KID)
 #endif
       {
-        if (PS3.getButtonClick(SELECT))
-        {
-          state = CALIBRATION;
-          PS3.setLedRaw(15);                // ON ON ON ON
-          PS3.setRumbleOn(5, 255, 5, 255);  // vibrate both, then left, then right
-          PS3.setRumbleOn(5, 255, 5, 0);
-          PS3.setRumbleOn(5, 0, 5, 255);
-        }
-        if (PS3.getButtonClick(START))
-        {                                   // switches between normal driving mode
-                                            // and kid mode
-          if (state == DRIVING)
-          {
-            state = KID;
-            PS3.setLedRaw(9);               // ON OFF OFF ON
-            PS3.setRumbleOn(5, 255, 5, 255);// vibrate both, then left, then right
-          }
-          else if (state == KID)
-          {
-            state = DRIVING;
-            PS3.setLedRaw(1);               // OFF OFF OFF ON
-            PS3.setRumbleOn(5, 255, 5, 255);// vibrate both, then left, then right
-          }
-        }
+        stateHandling();
 
 #ifdef OMNIWHEEL_DRIVETRAIN
         if (PS3.getButtonPress(L1))
@@ -705,6 +609,148 @@ void centerCtrl()
   else if (PS3.getButtonClick(CROSS)) centerRelease.write(CENTER_RELEASE_DOWN);
 }
 #endif
+
+#ifdef LED_STRIP
+void setupLED()
+{
+  pinMode(BLUE_LED, OUTPUT);
+  pinMode(GREEN_LED, OUTPUT);
+
+  flashLed();
+}
+#endif
+void setupDrivetrain()
+{
+#ifdef BASIC_DRIVETRAIN
+  leftMotor.attach(LEFT_MOTOR, 1000, 2000);
+  leftMotor.writeMicroseconds(1500); //stopped
+  rightMotor.attach(RIGHT_MOTOR, 1000, 2000);
+  rightMotor.writeMicroseconds(1500);
+#endif
+
+#ifdef OMNIWHEEL_DRIVETRAIN
+  motor1.attach(MOTOR_1, 1000, 2000);
+  motor1.writeMicroseconds(1500);
+  motor2.attach(MOTOR_2, 1000, 2000);
+  motor2.writeMicroseconds(1500);
+  motor3.attach(MOTOR_3, 1000, 2000);
+  motor3.writeMicroseconds(1500);
+  motor4.attach(MOTOR_4, 1000, 2000);
+  motor4.writeMicroseconds(1500);
+#endif
+}
+
+void setupPeripherals()
+{
+  #ifdef CENTER_PERIPHERALS
+  centerRelease.attach(CENTER_RELEASE);
+  centerRelease.write(CENTER_RELEASE_UP);
+#endif
+
+#ifdef QB_PERIPHERALS
+  qbThrower.attach(QB_THROWER);
+  qbThrower.writeMicroseconds(1500);
+#endif
+
+#ifdef KICKER_PERIPHERALS
+  kicker.attach(KICKER_MOTOR);
+  kicker.writeMicroseconds(1500);
+#endif
+}
+
+void setupSerial()
+{
+  //Begin Serial Communications
+  Serial.begin(115200);
+  if (Usb.Init() == -1)                 // this is for an error message with USB connections
+  {                               
+    Serial.print(F("\r\nOSC did not start"));
+    while (1);
+  }
+  Serial.print(F("\r\nPS3 Bluetooth Library Started"));
+}
+
+void setupRotationLock()
+{
+  if (!gyro.begin())
+  {
+    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+    while (1)
+    {
+#ifdef LED_STRIP
+      flashLed();
+#endif
+    }
+  }
+}
+
+void firstConnectRoutine()
+{
+  newconnect++;
+      //Serial.println("Rumble is on!");
+      PS3.moveSetRumble(64);
+      PS3.setRumbleOn(100, 255, 100, 255); //VIBRATE!!!
+
+#ifdef ROTATION_LOCK
+      gyro.getEvent(&rotationReadout);
+      desiredRotation = rotationReadout.orientation.x; // setting up our baseline value
+#endif
+}
+
+void calibrationCtrl()
+{
+  if (PS3.getButtonClick(UP))
+  {
+    motorCorrect++;
+    PS3.setRumbleOn(5, 255, 5, 0);    //vibrate ON THE LEFT!
+  }
+  else if (PS3.getButtonClick(DOWN))
+  {
+    motorCorrect--;
+    PS3.setRumbleOn(5, 0, 5, 255);    //vibrate ON THE RIGHT!
+  }
+  else if (PS3.getButtonClick(SELECT))
+  {
+    state = DRIVING;
+    PS3.setLedRaw(1);                 // OFF OFF OFF ON
+    PS3.setRumbleOn(5, 0, 5, 255);    //should vibrate left, then right, then both
+    PS3.setRumbleOn(5, 255, 5, 0);
+    PS3.setRumbleOn(5, 255, 5, 255);
+  }
+  if (PS3.getButtonClick(PS)) {
+    PS3.disconnect();
+    newconnect = 0;
+  }
+  eStop();
+}
+
+void stateHandling()
+{
+  if (PS3.getButtonClick(SELECT))
+  {
+    state = CALIBRATION;
+    PS3.setLedRaw(15);                // ON ON ON ON
+    PS3.setRumbleOn(5, 255, 5, 255);  // vibrate both, then left, then right
+    PS3.setRumbleOn(5, 255, 5, 0);
+    PS3.setRumbleOn(5, 0, 5, 255);
+  }
+  else if (PS3.getButtonClick(START))
+  {                                   // switches between normal driving mode
+                                      // and kid mode
+    if (state == DRIVING)
+    {
+      state = KID;
+      PS3.setLedRaw(9);               // ON OFF OFF ON
+      PS3.setRumbleOn(5, 255, 5, 255);// vibrate both, then left, then right
+    }
+    else if (state == KID)
+    {
+      state = DRIVING;
+      PS3.setLedRaw(1);               // OFF OFF OFF ON
+      PS3.setRumbleOn(5, 255, 5, 255);// vibrate both, then left, then right
+    }
+  }
+}
 
 //Error handling for what parts of the code are enabled
 #ifdef BASIC_DRIVETRAIN
