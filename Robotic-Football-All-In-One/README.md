@@ -1,5 +1,7 @@
 Robotic-Football-All-In-One
 =====
+> **Note as of 4/13/16 we are considering this project a bust. Having all the robots share the same code just makes for a file that is way to large. Advise moving robots to functionally separate codes when possible**
+
 This is the single-file code for the robotic football team. The design philosophy behind this project is to include all of the code for all of the robots inside a single file to make it easy to keep track of the different robots and their shared abilities. The abilities of the robot to be programmed are then chosen from a list of define statements at the top of the file, like so:
 
 ````c++
