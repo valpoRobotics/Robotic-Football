@@ -38,7 +38,7 @@ void setup()
 void loop()
 {
   victor.writeMicroseconds(1500); // drive STOP
-  delay(3000); // ensure there is 3 seconds before drive starts
+  //delay(3000); // ensure there is 3 seconds before drive starts
 
   // Calls the forward function if maxForward is within limits.
   if (maxForward > 1500 && maxForward < 2001)
@@ -61,7 +61,7 @@ void loop()
   // Hold motor in stopped state.
   victor.writeMicroseconds(1500); // drive STOP
   Serial.print("\r\n Stop");
-  while (continuous != 1) {} //program stays in this loop FOREVER
+  //while (continuous != 1) {} //program stays in this loop FOREVER
 }
 
 void forward(void)
