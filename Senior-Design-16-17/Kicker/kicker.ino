@@ -5,8 +5,8 @@
   Change log:
   Date                   Name                 Notes
   ======                 =====                =====
-  DEC/06/16               AWR                 file creation
-  JAN/19/16               AWR                 updated debug messaging
+  DEC/06/16               AWR                 file creation, drivetrain written
+  JAN/19/16               AWR                 updated debug messaging, added kids mode
 */
 
 #include <PS3BT.h>
@@ -89,7 +89,8 @@ void loop() {
       Serial.println("Connection is good!");
       #endif
       PS3.moveSetRumble(64);
-      PS3.setRumbleOn(100, 255, 100, 255); //VIBRATE!!!
+      PS3.setRumbleOn(50, 255, 50, 255); //VIBRATE!!!    
+      PS3.setLedRaw(1);
       setGreen();
     }
     if (PS3.getButtonClick(PS))
@@ -97,20 +98,55 @@ void loop() {
       #ifdef DEBUG
       Serial.println("Disconnect");
       #endif
+      kidsMode = false;
       PS3.disconnect();
       newconnect = 0;
       setBlue();
       stop();
     }
 
-    if (PS3.getButtonPress(R2))
+    if(PS3.getButtonPress(SELECT))
+    {
+      if(PS3.getButtonClick(START))
+      {
+        if(!kidMode)
+        {
+          kidMode = true;
+          #ifdef DEBUG
+          Serial.print("Entering Kid Mode ");
+          #endif
+          PS3.setRumbleOff();
+          PS3.setLedRaw(15);
+          currentHandicap = KID_HANDICAP;
+        }
+        else
+        {
+          kidMode = false;
+          #ifdef DEBUG
+          Serial.print("Exiting Kid Mode ");
+          #endif
+          PS3.setRumbleOff();
+          PS3.setLedRaw(1);
+          currentHandicap = HANDICAP;
+        }
+      }
+    }
+    
+    if (PS3.getButtonPress(R2) && !kidMode)
     {
       #ifdef DEBUG
       Serial.print("Turbo! ");
       #endif
       currentHandicap = TURBO;
     }
-    else currentHandicap = HANDICAP;
+    else if (!kidMode) currentHandicap = HANDICAP;
+    else 
+    {
+      currentHandicap = KID_HANDICAP;
+      #ifdef DEBUG
+      Serial.print("Kid Mode! ");
+      #endif
+    }
   
     int yInput = map(PS3.getAnalogHat(LeftHatY), 0, 255, -90, 90); //Recieves PS3 forward/backward input
     int xInput = map(PS3.getAnalogHat(RightHatX), 0, 255, 90, -90); //Recieves PS3 horizontal input and sets it to an inverted scale of 90 to -90
