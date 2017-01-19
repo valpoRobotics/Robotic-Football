@@ -6,7 +6,7 @@
   Date                   Name                 Notes
   ======                 =====                =====
   DEC/06/16               AWR                 file creation, drivetrain written
-  JAN/19/16               AWR                 updated debug messaging, added kids mode
+  JAN/19/17               AWR                 updated debug messaging, added kids mode
 */
 
 #include <PS3BT.h>
