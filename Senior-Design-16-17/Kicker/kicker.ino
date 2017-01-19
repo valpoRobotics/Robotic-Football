@@ -98,7 +98,7 @@ void loop() {
       #ifdef DEBUG
       Serial.println("Disconnect");
       #endif
-      kidsMode = false;
+      kidMode = false;
       PS3.disconnect();
       newconnect = 0;
       setBlue();
