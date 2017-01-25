@@ -7,15 +7,15 @@
    There is error handling below for if things are enabled/disabled that shouldn't be.
    Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
 */
-//#define BASIC_DRIVETRAIN
-#define OMNIWHEEL_DRIVETRAIN
+#define BASIC_DRIVETRAIN
+//#define OMNIWHEEL_DRIVETRAIN
 //#define CENTER_PERIPHERALS
-#define QB_PERIPHERALS
+//#define QB_PERIPHERALS
 //#define KICKER_PERIPHERALS
 //#define RECEIVER_PERIPHERALS
 #define LED_STRIP
 #define TACKLE
-#define ROTATION_LOCK
+//#define ROTATION_LOCK
 /*
    Vesion History
 
@@ -93,6 +93,7 @@
 #endif
 
 #ifdef LED_STRIP
+#define RED_LED         11
 #define GREEN_LED       12
 #define BLUE_LED        13
 #endif
@@ -230,9 +231,9 @@ void setup() {
 #endif
 
 #ifdef LED_STRIP
-  pinMode(BLUE_LED, OUTPUT);
+  pinMode(BLUE_LED,  OUTPUT);
   pinMode(GREEN_LED, OUTPUT);
-
+  pinMode(RED_LED,   OUTPUT);
   flashLed();
 #endif
 
@@ -379,6 +380,7 @@ void loop()
 #endif
 
 #ifdef LED_STRIP
+        digitalWrite(RED_LED,  LOW);
         digitalWrite(BLUE_LED, LOW);
         digitalWrite(GREEN_LED, HIGH);
 #endif
@@ -418,6 +420,7 @@ void loop()
         eStop();
 
 #ifdef LED_STRIP
+        digitalWrite(RED_LED,   LOW);
         digitalWrite(GREEN_LED, LOW);
         digitalWrite(BLUE_LED, HIGH);
 #endif
@@ -431,6 +434,7 @@ void loop()
     eStop();
 
 #ifdef LED_STRIP
+    digitalWrite(RED_LED, LOW);
     digitalWrite(GREEN_LED, LOW);
     digitalWrite(BLUE_LED, HIGH);
 #endif
@@ -687,15 +691,23 @@ void kickerCtrl()
 void flashLed()
 {
   //flash the leds
+  digitalWrite(RED_LED, LOW);
   digitalWrite(BLUE_LED, LOW);
   digitalWrite(GREEN_LED, HIGH);
   delay(300);
+  digitalWrite(RED_LED, LOW);
   digitalWrite(GREEN_LED, LOW);
   digitalWrite(BLUE_LED, HIGH);
   delay(300);
   digitalWrite(BLUE_LED, LOW);
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(RED_LED, HIGH);
+  delay(300);
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(BLUE_LED, LOW);
   digitalWrite(GREEN_LED, HIGH);
   delay(300);
+  digitalWrite(RED_LED, LOW);
   digitalWrite(GREEN_LED, LOW);
   digitalWrite(BLUE_LED, HIGH);
 }
