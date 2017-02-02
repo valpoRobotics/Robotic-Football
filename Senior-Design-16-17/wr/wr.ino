@@ -1,19 +1,21 @@
 /*
-  Software developed for use on Wide Reciever Gen 3
+  Software developed for use on Charlie Brown (Kicker Gen 3)
   Developed by Aaron Roggow(17) and John White(17)
   
   Change log:
   Date                   Name                 Notes
   ======                 =====                =====
-  JAN/19/17               AWR                 code adapted from Kicker progress from Jan/19/17
-  JAN/21/17               AWR                 added servo functionality, reversable drive
+  DEC/06/16               AWR                 file creation, drivetrain written
+  JAN/19/17               AWR                 updated debug messaging, added kids mode
+  JAN/26/17               AWR                 added kicking, electronic lockout
+  FEB/02/17               AWR                 added bow direction flipping
 */
 
 #include <PS3BT.h>
 #include <usbhub.h>
 #include <Servo.h>
 
-#define DEBUG
+//#define DEBUG
 
 //change pin inputs here
 #define REDLED        11
@@ -21,20 +23,15 @@
 #define GREENLED      13
 #define LEFT_MOTOR    9
 #define RIGHT_MOTOR   10
-#define SERVO_MOTOR   8
-#define IRLED         7
+#define KICKER_MOTOR  8
+#define LOCKOUT_PIN   7
 
 
 #define LEFT_FLIP -1
 #define RIGHT_FLIP 1
 #define DEADZONE 8
-#define SERVO_UP_POS 120
-#define SERVO_DN_POS 30
-#define SERVO_UP true
-#define SERVO_DN false
-bool servoState = SERVO_DN;
-#define FORWARD 1
-#define BACKWARD -1
+#define FORWARD -1              // note this is flipped from the WR
+#define BACKWARD 1
 int bowDirection = FORWARD;
 
 #define LED_STATUS_FORWARD  1
@@ -49,7 +46,15 @@ bool kidMode = false;
 
 Servo leftMotor;                  //Left motor
 Servo rightMotor;                 //Right motor
-Servo servoMotor;                 //Center motor
+Servo kickerMotor;                //Center motor
+bool lockout;                     // 1 if in lockout mode, 0 if ready for kick
+unsigned long timeOfLastLockout = 0;
+#define TRIANGLE_KICK_VALUE  180
+#define CIRCLE_KICK_VALUE    150
+#define CROSS_KICK_VALUE     130
+#define SQUARE_KICK_VALUE    110
+#define RELOAD_VALUE         75
+#define LOCKOUT_DELAY_TIME   2000 //millis
 
 int newconnect = 0;               //Variable(boolean) for connection to ps3, also activates rumble
 int Drive = 0;                    //Initial speed before turning calculations
@@ -72,18 +77,15 @@ void setup() {
   //Assign motor pin outs
   leftMotor.attach(LEFT_MOTOR,      1000, 2000);
   rightMotor.attach(RIGHT_MOTOR,    1000, 2000);
-  servoMotor.attach(SERVO_MOTOR,    1000, 2000);
-
+  kickerMotor.attach(KICKER_MOTOR,  1000, 2000);
+  pinMode(LOCKOUT_PIN, INPUT);
   stop();
 
   pinMode(REDLED,   OUTPUT);
   pinMode(BLUELED,  OUTPUT);
   pinMode(GREENLED, OUTPUT);
-  pinMode(IRLED,    OUTPUT);
 
   flashLEDs();
-
-  setServo(SERVO_DN);
 
   Serial.begin(115200);
   if (Usb.Init() == -1)
@@ -107,7 +109,7 @@ void loop() {
       #endif
       PS3.moveSetRumble(64);
       PS3.setRumbleOn(50, 255, 50, 255); //VIBRATE!!!    
-      setBowDirection(FORWARD);
+      PS3.setLedRaw(1);
       setGreen();
     }
     if (PS3.getButtonClick(PS))
@@ -116,7 +118,7 @@ void loop() {
       Serial.println("Disconnect");
       #endif
       kidMode = false;
-      PS3.disconnect();
+      PS3.disconnect();      
       setBowDirection(FORWARD);
       newconnect = 0;
       setBlue();
@@ -144,22 +146,10 @@ void loop() {
           Serial.print("Exiting Kid Mode ");
           #endif
           PS3.setRumbleOff();
-          PS3.setLedRaw(LED_STATUS_FORWARD);
+          if(FORWARD == bowDirection) PS3.setLedRaw(LED_STATUS_FORWARD);
+          else PS3.setLedRaw(LED_STATUS_BACKWARD);
           currentHandicap = HANDICAP;
         }
-      }
-    }
-
-    if (PS3.getButtonClick(L1))
-    {
-      toggleServo();
-    }
-
-    if (PS3.getButtonPress(L3))
-    {
-      if(PS3.getButtonClick(R3))
-      {
-        toggleBowDirection();
       }
     }
     
@@ -177,6 +167,11 @@ void loop() {
       #ifdef DEBUG
       Serial.print("Kid Mode! ");
       #endif
+    }
+
+    if (PS3.getButtonClick(L1))
+    {
+      toggleBowDirection();
     }
   
     int yInput = map(PS3.getAnalogHat(LeftHatY), 0, 255, -90, 90); //Recieves PS3 forward/backward input
@@ -199,8 +194,8 @@ void loop() {
     if (PS3.getButtonClick(UP)) motorCorrect++;
     if (PS3.getButtonClick(DOWN)) motorCorrect--;
 
-    int ThrottleL =  LEFT_FLIP * (((bowDirection * Drive) + Turn) / currentHandicap); //This is the final variable that decides motor speed.
-    int ThrottleR = RIGHT_FLIP * (((bowDirection * Drive) - Turn) / currentHandicap);
+    int ThrottleL =  LEFT_FLIP * ((((bowDirection * Drive)) / currentHandicap) + Turn); //This is the final variable that decides motor speed.
+    int ThrottleR = RIGHT_FLIP * ((((bowDirection * Drive)) / currentHandicap) - Turn);
 
     if (ThrottleL > 90) ThrottleL = 90;
     else if(ThrottleL < -90) ThrottleL = -90;
@@ -214,18 +209,84 @@ void loop() {
     Serial.print(ThrottleR);
     Serial.print(" motorCorrect: ");
     Serial.print(motorCorrect);
-    if(SERVO_DN == servoState) Serial.print(" DN ");
-    else if(SERVO_UP == servoState) Serial.print(" UP ");
-    Serial.println(" ;");
+    
     #endif
     leftMotor.write((ThrottleL + 90 + motorCorrect)); //Sending values to the speed controllers
     rightMotor.write((ThrottleR + 90 + motorCorrect));
-    
+
+    lockout = digitalRead(LOCKOUT_PIN); 
+    if(PS3.getButtonPress(R1) && !kidMode) 
+    {
+      #ifdef DEBUG
+      Serial.print(" Kicking Power: Reloading");
+      #endif
+      kickerMotor.write(RELOAD_VALUE);
+    }
+    else if(!lockout && !kidMode)   //cleared for kick
+    {
+      if((millis() - timeOfLastLockout) > LOCKOUT_DELAY_TIME)
+      {
+        #ifdef DEBUG
+        Serial.print(" Kicking Power: ");
+        #endif
+        if(PS3.getButtonPress(TRIANGLE))    
+        {
+          #ifdef DEBUG
+          Serial.print(TRIANGLE_KICK_VALUE);
+          #endif
+          kickerMotor.write(TRIANGLE_KICK_VALUE);
+        }
+        else if(PS3.getButtonPress(CIRCLE)) 
+        {
+          #ifdef DEBUG
+          Serial.print(CIRCLE_KICK_VALUE);
+          #endif
+          kickerMotor.write(CIRCLE_KICK_VALUE);
+        }
+        else if(PS3.getButtonPress(CROSS))  
+        {
+          #ifdef DEBUG
+          Serial.print(CROSS_KICK_VALUE);
+          #endif
+          kickerMotor.write(CROSS_KICK_VALUE);
+        }
+        else if(PS3.getButtonPress(SQUARE)) 
+        {
+          #ifdef DEBUG
+          Serial.print(SQUARE_KICK_VALUE);
+          #endif
+          kickerMotor.write(SQUARE_KICK_VALUE);
+        }
+        else 
+        {
+          #ifdef DEBUG
+          Serial.print(0);
+          #endif
+          kickerMotor.writeMicroseconds(1500);
+        }
+      }
+      else
+      {
+        #ifdef DEBUG
+        Serial.print("Time since last lockout: ");
+        Serial.print(millis() - timeOfLastLockout);
+        #endif
+      }
+      
+    }
+    else           // do not kick!
+    {
+      #ifdef DEBUG
+      Serial.print(" In Lockout Mode");
+      #endif
+      kickerMotor.writeMicroseconds(1500);
+      timeOfLastLockout = millis();
+    }
+    Serial.println(";");
   }
       
   else
   {
-    Serial.println("Stop");
     stop();
     setBlue();
   }
@@ -236,7 +297,10 @@ void stop()
 {
   leftMotor.writeMicroseconds(1500);
   rightMotor.writeMicroseconds(1500);
-  servoMotor.writeMicroseconds(1500);
+  kickerMotor.writeMicroseconds(1500);
+  #ifdef DEBUG
+  Serial.println("Stop");
+  #endif
 }
 
 void flashLEDs()
@@ -271,39 +335,6 @@ void setBlue()
   digitalWrite(GREENLED,  LOW);
   digitalWrite(REDLED,    LOW);
   digitalWrite(BLUELED,   HIGH);
-}
-
-void setServo(bool state)
-{
-  if(state == servoState) return; // requesting servo move to it's existing position
-  else if (SERVO_DN == state)
-  {
-    digitalWrite(IRLED, LOW);
-    servoMotor.write(SERVO_DN_POS);
-    servoState = SERVO_DN;
-  }
-  else if (SERVO_UP == state)
-  {
-    servoMotor.write(SERVO_UP_POS);
-    servoState = SERVO_UP;
-    digitalWrite(IRLED, HIGH);
-  }
-}
-
-void toggleServo()
-{
-  if (SERVO_UP == servoState)
-  {
-    digitalWrite(IRLED, LOW);
-    servoMotor.write(SERVO_DN_POS);
-    servoState = SERVO_DN;
-  }
-  else if (SERVO_DN == servoState)
-  {
-    servoMotor.write(SERVO_UP_POS);
-    servoState = SERVO_UP;
-    digitalWrite(IRLED, HIGH);
-  }
 }
 
 void toggleBowDirection()
