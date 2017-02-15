@@ -1,5 +1,6 @@
 /*
    THE ALL-IN-ONE-PACKAGE - Robotic Football Edition!!!
+  
 */
 
 /*
@@ -23,6 +24,7 @@
    1.0.1 - Matt Bull- fixed eStop functionality for if controller becomes disconnected, added ability to disconnect controller in calibration mode when PS is pressed
    1.0.2 - Matt Bull- added ability to disconnect controller to the main loop for testing eStop
    1.0.3 - Aaron Roggow - added compass code to quarterback (rotation_lock)
+   1.0.4 - Aaron Roggow - added red led
    
 
    Controls...
