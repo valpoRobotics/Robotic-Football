@@ -67,9 +67,9 @@
     Motor2 - 8
     Motor3 - 9
     Motor4 - 10
-   QB Thrower - 11
-   Kicker - 11
-   Center - 11
+   QB Thrower - 5
+   Kicker - 5
+   Center - 5
 */
 
 // mode definitions
@@ -152,7 +152,7 @@ int turnHandicap = 1;
 #endif
 
 #ifdef CENTER_PERIPHERALS
-#define CENTER_RELEASE        11
+#define CENTER_RELEASE        5
 #define CENTER_RELEASE_DOWN   120
 #define CENTER_RELEASE_UP     70
 
@@ -160,7 +160,7 @@ Servo centerRelease;
 #endif
 
 #ifdef QB_PERIPHERALS
-#define QB_THROWER            11
+#define QB_THROWER            5
 Servo qbThrower;
 #define TRIANGLE_THROW        175
 #define CIRCLE_THROW          125
@@ -172,7 +172,7 @@ int throwOffset = 0;                //used to adjust strength of cross and circl
 #endif
 
 #ifdef KICKER_PERIPHERALS
-#define KICKER_MOTOR          11
+#define KICKER_MOTOR          5
 #define KICKER_POWER          175
 #define KICKER_RELOAD         85
 Servo kicker;
