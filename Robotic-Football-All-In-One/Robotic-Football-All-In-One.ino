@@ -7,15 +7,15 @@
    There is error handling below for if things are enabled/disabled that shouldn't be.
    Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
 */
-//#define BASIC_DRIVETRAIN
-#define OMNIWHEEL_DRIVETRAIN
+#define BASIC_DRIVETRAIN
+//#define OMNIWHEEL_DRIVETRAIN
 //#define CENTER_PERIPHERALS
-#define QB_PERIPHERALS
+//#define QB_PERIPHERALS
 //#define KICKER_PERIPHERALS
 //#define RECEIVER_PERIPHERALS
 #define LED_STRIP
 #define TACKLE
-#define ROTATION_LOCK
+//#define ROTATION_LOCK
 /*
    Vesion History
 
@@ -23,6 +23,7 @@
    1.0.1 - Matt Bull- fixed eStop functionality for if controller becomes disconnected, added ability to disconnect controller in calibration mode when PS is pressed
    1.0.2 - Matt Bull- added ability to disconnect controller to the main loop for testing eStop
    1.0.3 - Aaron Roggow - added compass code to quarterback (rotation_lock)
+   1.0.4 - Aaron Roggow - added red led
    
 
    Controls...
@@ -66,9 +67,9 @@
     Motor2 - 8
     Motor3 - 9
     Motor4 - 10
-   QB Thrower - 11
-   Kicker - 11
-   Center - 11
+   QB Thrower - 5
+   Kicker - 5
+   Center - 5
 */
 
 // mode definitions
@@ -93,6 +94,7 @@
 #endif
 
 #ifdef LED_STRIP
+#define RED_LED         11
 #define GREEN_LED       12
 #define BLUE_LED        13
 #endif
@@ -150,7 +152,7 @@ int turnHandicap = 1;
 #endif
 
 #ifdef CENTER_PERIPHERALS
-#define CENTER_RELEASE        11
+#define CENTER_RELEASE        5
 #define CENTER_RELEASE_DOWN   120
 #define CENTER_RELEASE_UP     70
 
@@ -158,7 +160,7 @@ Servo centerRelease;
 #endif
 
 #ifdef QB_PERIPHERALS
-#define QB_THROWER            11
+#define QB_THROWER            5
 Servo qbThrower;
 #define TRIANGLE_THROW        175
 #define CIRCLE_THROW          125
@@ -170,7 +172,7 @@ int throwOffset = 0;                //used to adjust strength of cross and circl
 #endif
 
 #ifdef KICKER_PERIPHERALS
-#define KICKER_MOTOR          11
+#define KICKER_MOTOR          5
 #define KICKER_POWER          175
 #define KICKER_RELOAD         85
 Servo kicker;
@@ -230,9 +232,9 @@ void setup() {
 #endif
 
 #ifdef LED_STRIP
-  pinMode(BLUE_LED, OUTPUT);
+  pinMode(BLUE_LED,  OUTPUT);
   pinMode(GREEN_LED, OUTPUT);
-
+  pinMode(RED_LED,   OUTPUT);
   flashLed();
 #endif
 
@@ -379,6 +381,7 @@ void loop()
 #endif
 
 #ifdef LED_STRIP
+        digitalWrite(RED_LED,  LOW);
         digitalWrite(BLUE_LED, LOW);
         digitalWrite(GREEN_LED, HIGH);
 #endif
@@ -418,6 +421,7 @@ void loop()
         eStop();
 
 #ifdef LED_STRIP
+        digitalWrite(RED_LED,   LOW);
         digitalWrite(GREEN_LED, LOW);
         digitalWrite(BLUE_LED, HIGH);
 #endif
@@ -431,6 +435,7 @@ void loop()
     eStop();
 
 #ifdef LED_STRIP
+    digitalWrite(RED_LED, LOW);
     digitalWrite(GREEN_LED, LOW);
     digitalWrite(BLUE_LED, HIGH);
 #endif
@@ -687,15 +692,23 @@ void kickerCtrl()
 void flashLed()
 {
   //flash the leds
+  digitalWrite(RED_LED, LOW);
   digitalWrite(BLUE_LED, LOW);
   digitalWrite(GREEN_LED, HIGH);
   delay(300);
+  digitalWrite(RED_LED, LOW);
   digitalWrite(GREEN_LED, LOW);
   digitalWrite(BLUE_LED, HIGH);
   delay(300);
   digitalWrite(BLUE_LED, LOW);
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(RED_LED, HIGH);
+  delay(300);
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(BLUE_LED, LOW);
   digitalWrite(GREEN_LED, HIGH);
   delay(300);
+  digitalWrite(RED_LED, LOW);
   digitalWrite(GREEN_LED, LOW);
   digitalWrite(BLUE_LED, HIGH);
 }
