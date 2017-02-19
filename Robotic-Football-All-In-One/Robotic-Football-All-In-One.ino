@@ -7,10 +7,11 @@
    There is error handling below for if things are enabled/disabled that shouldn't be.
    Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
 */
-#define BASIC_DRIVETRAIN
-//#define OMNIWHEEL_DRIVETRAIN
+//#define BASIC_DRIVETRAIN
+#define OMNIWHEEL_DRIVETRAIN
 //#define CENTER_PERIPHERALS
-//#define QB_PERIPHERALS
+#define QB_PERIPHERALS
+#define QB_TRACKING
 //#define KICKER_PERIPHERALS
 //#define RECEIVER_PERIPHERALS
 #define LED_STRIP
@@ -148,7 +149,8 @@ int xInput, yInput, turnInput;      // we just make these global so we don't hav
 float magn, angle;
 float motorReverse = 0;             // 0 for not reversed, M_PI for reversed (think 
                                     // about your trig)
-int turnHandicap = 1;
+#define TURN_HANDICAP_AMOUNT 1
+int turnHandicap = TURN_HANDICAP_AMOUNT;
 #endif
 
 #ifdef CENTER_PERIPHERALS
@@ -169,6 +171,29 @@ Servo qbThrower;
 #define SQUARE_THROW          102
 #define RELOAD_THROW          88
 int throwOffset = 0;                //used to adjust strength of cross and circle throws
+#endif
+
+#ifdef QB_TRACKING
+  int aimingFactor = 0;             //value sent to the motors to aim
+
+  //IR Camera Things
+  void cameraCapture();
+  void Write_2bytes(byte d1, byte d2);
+  #include <Wire.h>
+  int IRsensorAddress = 0xB0;
+  int slaveAddress;
+  byte data_buf[16];
+  int CamX[4];
+  int CamY[4];
+  
+  #define CAMERA_CENTER_X 485
+  #define CAMERA_CENTER_WIDTH 3
+  #define CAMERA_SPEED_FACTOR 35
+  bool isWRSeen = false;
+  bool isWRTracking = false;
+
+  unsigned int calcThrow = 140;
+  unsigned int distanceToWR;
 #endif
 
 #ifdef KICKER_PERIPHERALS
@@ -250,6 +275,19 @@ void setup() {
 #ifdef QB_PERIPHERALS
   qbThrower.attach(QB_THROWER);
   qbThrower.writeMicroseconds(1500);
+#endif
+
+#ifdef QB_TRACKING
+    slaveAddress = IRsensorAddress >> 1; // This results in 0x21 as the address to pass toTWI
+    Wire.begin();
+    Write_2bytes(0x30,0x01); delay(10);
+    Write_2bytes(0x30,0x08); delay(10);
+    Write_2bytes(0x06,0x90); delay(10);
+    Write_2bytes(0x08,0xC0); delay(10);
+    Write_2bytes(0x1A,0x40); delay(10);
+    Write_2bytes(0x33,0x33); delay(10);
+    delay(100);
+    
 #endif
 
 #ifdef KICKER_PERIPHERALS
@@ -388,6 +426,10 @@ void loop()
 
 #ifdef CENTER_PERIPHERALS
         centerCtrl();
+#endif
+
+#ifdef QB_TRACKING
+        cameraCapture();
 #endif
 
 #ifdef QB_PERIPHERALS
@@ -605,23 +647,34 @@ void driveCtrl()
       }
     }
   }
-  
-#endif
   Serial.print(rotationCorrect);
   Serial.print("   ");
   Serial.println(desiredRotation);
+  motor1Drive += rotationCorrect;
+  motor2Drive += rotationCorrect;
+  motor3Drive += rotationCorrect;
+  motor4Drive += rotationCorrect;
+  
+#endif
 
   motor4Drive = ((magn * (sin(angle + PI_OVER_4 + motorReverse)) / handicap)
-                + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
+                + (float)(turnHandicap * turnInput) + 90 + motorCorrect);
 
   motor1Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + motorReverse)) / handicap)                          
-                + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
+                + (float)(turnHandicap * turnInput) + 90 + motorCorrect);
 
   motor2Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + PI_OVER_2 + motorReverse)) / handicap)              
-                + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
+                + (float)(turnHandicap * turnInput) + 90 + motorCorrect);
 
   motor3Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + PI_OVER_2 + PI_OVER_2 + motorReverse)) / handicap)  
-                + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
+                + (float)(turnHandicap * turnInput) + 90 + motorCorrect);
+
+#ifdef QB_TRACKING
+  motor1Drive += aimingFactor;
+  motor2Drive += aimingFactor;
+  motor3Drive += aimingFactor;
+  motor4Drive += aimingFactor;
+#endif
 
   if (motor1Drive < 5)motor1Drive = 5;
   else if (motor1Drive > 175)motor1Drive = 175;
@@ -652,6 +705,8 @@ void driveCtrl()
 #ifdef QB_PERIPHERALS
 void qbThrowerCtrl()
 {
+
+  
   if (PS3.getButtonPress(L2))
   {
     if (PS3.getButtonClick(UP))
@@ -667,6 +722,9 @@ void qbThrowerCtrl()
   }
 
   if (PS3.getButtonPress(TRIANGLE))    qbThrower.write(TRIANGLE_THROW);
+#ifdef QB_TRACKING
+  else if(PS3.getButtonPress(CIRCLE) && (isWRTracking == true)) qbThrower.write(calcThrow); // throw the auto targetted distance
+#endif
   else if (PS3.getButtonPress(CIRCLE)) qbThrower.write(CIRCLE_THROW + throwOffset);
   else if (PS3.getButtonPress(CROSS))  qbThrower.write(CROSS_THROW + throwOffset);
   else if (PS3.getButtonPress(SQUARE)) qbThrower.write(SQUARE_THROW + throwOffset) ;
@@ -678,6 +736,152 @@ void qbThrowerCtrl()
   else qbThrower.writeMicroseconds(1500);
 }
 #endif
+
+#ifdef QB_TRACKING
+void cameraCapture()
+{
+  int i;
+  int s;
+  int numGoodPoints = 0;
+  int firstPoint = 0;
+  int secondPoint = 0;
+  int pixWidth = 0;
+  
+  Wire.beginTransmission(slaveAddress);
+  Wire.write(0x36);
+  Wire.endTransmission();
+  Wire.requestFrom(slaveAddress, 16); // Request the 2 byte heading (MSB comes first)
+  for (i=0;i<16;i++) { data_buf[i]=0; }
+  
+  i=0;
+  
+  while(Wire.available() && i < 16) {
+    data_buf[i] = Wire.read();
+    i++;
+  }
+  
+  CamX[0] = data_buf[1];
+  CamY[0] = data_buf[2];
+  s = data_buf[3];
+  CamX[0] += (s & 0x30) <<4;
+  CamY[0] += (s & 0xC0) <<2;
+  
+  CamX[1] = data_buf[4];
+  CamY[1] = data_buf[5];
+  s = data_buf[6];
+  CamX[1] += (s & 0x30) <<4;
+  CamY[1] += (s & 0xC0) <<2;
+  
+  CamX[2] = data_buf[7];
+  CamY[2] = data_buf[8];
+  s = data_buf[9];
+  CamX[2] += (s & 0x30) <<4;
+  CamY[2] += (s & 0xC0) <<2;
+  
+  CamX[3] = data_buf[10];
+  CamY[3] = data_buf[11];
+  s = data_buf[12];
+  CamX[3] += (s & 0x30) <<4;
+  CamY[3] += (s & 0xC0) <<2;
+
+  // DETERMINE IF WE CAN SEE THE WR
+  isWRSeen = false;
+  //digitalWrite(BLUE_LED, LOW);
+  for (i=0; i < 4; i++)
+  {
+    if (CamX[i] != 1023)
+    {
+      isWRSeen = true;
+      //digitalWrite(BLUE_LED,HIGH);
+      if (numGoodPoints == 0)
+      {
+        firstPoint = i;
+        numGoodPoints++;
+      } else if (numGoodPoints == 1)
+      {
+        secondPoint = i;
+        numGoodPoints++;
+        pixWidth = CamY[firstPoint] - CamY[secondPoint];
+        pixWidth = abs(pixWidth);
+        //Serial.print("PixWidth: ");
+        //Serial.print(pixWidth);
+        distanceToWR = 17688/pixWidth;
+        //Serial.print("Distance Raw: ");
+        //Serial.print(distanceToWR);
+        distanceToWR -= 12;
+        distanceToWR = distanceToWR * 7;
+        distanceToWR = distanceToWR / 8;
+        //Serial.print("Distance: ");
+        //Serial.print(distanceToWR);
+        //Serial.print("Distance: ");
+        //Serial.println(distanceToWR);
+
+        calcThrow = distanceToWR*6;
+        //Serial.print("calcThrow1: ");
+        //Serial.print(calcThrow);
+        calcThrow = calcThrow/18;
+        //Serial.print("calcThrow2: ");
+        //Serial.print(calcThrow);
+        calcThrow = calcThrow+100;
+        //Serial.print("calcThrow3: ");
+        //Serial.println(calcThrow);
+
+        if(calcThrow > 145) calcThrow = 145;
+        else if(calcThrow < 110) calcThrow = 110;
+        break;
+      }
+    }
+  }
+  //===========================================================================================
+  // NOTE: ITERATING VARIABLE 'i' IS RETAINED AFTER FOR LOOP FOR USE IN UPDATNG ROTATION OFFSET
+  // BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL
+  //===========================================================================================
+
+  // UPDATE TRACKING STATE
+  if(PS3.getButtonClick(R3))
+  {
+    if((isWRTracking == false) && (isWRSeen == true))   // Only track if we currently see the WR
+    {
+      isWRTracking = true;
+      PS3.moveSetRumble(64);
+      PS3.setRumbleOn(100, 255, 100, 255); //VIBRATE!!!
+    }
+    else if(isWRTracking == true)
+    {
+      isWRTracking = false;
+    }
+  }
+  if(isWRSeen == false)
+  {
+    isWRTracking = false;
+  }
+
+  // UPDATE ROTATION OFFSET
+  if ((isWRTracking == true) && (isWRSeen == true))
+  {
+      aimingFactor = CamX[firstPoint] - CAMERA_CENTER_X;
+      if (abs(aimingFactor) < CAMERA_CENTER_WIDTH)
+      {
+        aimingFactor = 0;
+      }
+      else
+      {
+        aimingFactor = map(aimingFactor,0-CAMERA_CENTER_X,1023-CAMERA_CENTER_X,-1*CAMERA_SPEED_FACTOR,CAMERA_SPEED_FACTOR);
+      }
+  }
+  else if (isWRSeen == false)
+  {
+    aimingFactor = 0;
+  }
+}
+#endif
+
+void Write_2bytes(byte d1, byte d2)
+{
+  Wire.beginTransmission(slaveAddress);
+  Wire.write(d1); Wire.write(d2);
+  Wire.endTransmission();
+}
 
 #ifdef KICKER_PERIPHERALS
 void kickerCtrl()
@@ -793,6 +997,12 @@ void centerCtrl()
 #ifdef KICKER_PERIPHERALS
 #error Multiple peripherals enabled!
 #endif
+#endif
+#endif
+
+#ifdef QB_TRACKING
+#ifndef QB_PERIPHERALS
+#error You enabled QB tracking, but no QB peripherals!
 #endif
 #endif
 
