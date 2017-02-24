@@ -7,15 +7,15 @@
    There is error handling below for if things are enabled/disabled that shouldn't be.
    Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
 */
-//#define BASIC_DRIVETRAIN
-#define OMNIWHEEL_DRIVETRAIN
+#define BASIC_DRIVETRAIN
+//#define OMNIWHEEL_DRIVETRAIN
 //#define CENTER_PERIPHERALS
-#define QB_PERIPHERALS
-#define QB_TRACKING
+//#define QB_PERIPHERALS
+//#define QB_TRACKING
 //#define KICKER_PERIPHERALS
 //#define RECEIVER_PERIPHERALS
 #define LED_STRIP
-#define TACKLE
+//#define TACKLE
 //#define ROTATION_LOCK
 /*
    Vesion History
@@ -876,12 +876,14 @@ void cameraCapture()
 }
 #endif
 
+#ifdef QB_TRACKING
 void Write_2bytes(byte d1, byte d2)
 {
   Wire.beginTransmission(slaveAddress);
   Wire.write(d1); Wire.write(d2);
   Wire.endTransmission();
 }
+#endif
 
 #ifdef KICKER_PERIPHERALS
 void kickerCtrl()
