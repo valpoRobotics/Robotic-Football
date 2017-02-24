@@ -18,14 +18,12 @@
 //#define ROTATION_LOCK
 /*
    Vesion History
-
    1.0.0 - AARON ROGGOW - adding pre-existant functionality for basic drivetrain, omniwheel drivetrain, center, qb, and kicker, and calibration and kids mode
    1.0.1 - Matt Bull- fixed eStop functionality for if controller becomes disconnected, added ability to disconnect controller in calibration mode when PS is pressed
    1.0.2 - Matt Bull- added ability to disconnect controller to the main loop for testing eStop
    1.0.3 - Aaron Roggow - added compass code to quarterback (rotation_lock)
    1.0.4 - Aaron Roggow - added red led
    
-
    Controls...
    SELECT - enter/exit CALIBRATION MODE - note, will exit into normal drive mode
       UP/DOWN - adjust motor offset
@@ -53,7 +51,6 @@
       R1 - thrower reload
    Rotation Lock
       L3 - reset orientation
-
    Pins...
    LED Strip -
     Green - 12
@@ -87,107 +84,107 @@
 #endif
 
 #ifdef ROTATION_LOCK
-#include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
+	#include <Wire.h>
+	#include <Adafruit_Sensor.h>
+	#include <Adafruit_BNO055.h>
+	#include <utility/imumaths.h>
 #endif
 
 #ifdef LED_STRIP
-#define RED_LED         11
-#define GREEN_LED       12
-#define BLUE_LED        13
+	#define RED_LED         11
+	#define GREEN_LED       12
+	#define BLUE_LED        13
 #endif
 
 #ifdef TACKLE
-#define TACKLE_INPUT    6
-int tackled = 1;                    // Tackle detects if the robot has been tackled
+	#define TACKLE_INPUT    6
+	int tackled = 1;                    // Tackle detects if the robot has been tackled
 #endif
 
 #ifdef BASIC_DRIVETRAIN
-#define LEFT_MOTOR_REVERSE    -1    // these are to reverse the motor direction if 
-                                    // a motor is wired backwards.
-#define RIGHT_MOTOR_REVERSE   1     // In almost every case, it would be better to 
-                                    // fix the wiring than to change this in code
-
-#define LEFT_MOTOR            9
-#define RIGHT_MOTOR           10
-#define ALTERNATE_HANDICAP    1
-#define DEFAULT_HANDICAP      3     // omniwheel and basic drivetrains both have their 
-                                    // own version of this
-#define KID_HANDICAP          7     // and this
-
-#define MAX_DRIVE             84    // limited because of issues with calibrating 
-                                    // victors to full 0-180 range
-
-Servo leftMotor, rightMotor;
-int drive = 0;                      // Initial speed before turning calculations
-int turn = 0;                       // Turn is adjustment to drive for each motor 
-                                    // separately to create turns
-int xInput, yInput, throttleL, throttleR;
+	#define LEFT_MOTOR_REVERSE    -1    // these are to reverse the motor direction if 
+										// a motor is wired backwards.
+	#define RIGHT_MOTOR_REVERSE   1     // In almost every case, it would be better to 
+										// fix the wiring than to change this in code
+	
+	#define LEFT_MOTOR            9
+	#define RIGHT_MOTOR           10
+	#define ALTERNATE_HANDICAP    1
+	#define DEFAULT_HANDICAP      3     // omniwheel and basic drivetrains both have their 
+										// own version of this
+	#define KID_HANDICAP          7     // and this
+	
+	#define MAX_DRIVE             84    // limited because of issues with calibrating 
+										// victors to full 0-180 range
+	
+	Servo leftMotor, rightMotor;
+	int drive = 0;                      // Initial speed before turning calculations
+	int turn = 0;                       // Turn is adjustment to drive for each motor 
+										// separately to create turns
+	int xInput, yInput, throttleL, throttleR;
 #endif
 
 #ifdef OMNIWHEEL_DRIVETRAIN
-#define MOTOR_1               7     //   1//-FRONT-\\4
-#define MOTOR_2               8     //     |       |
-#define MOTOR_3               9     //     |       |                                                                          <-- check this for accuracy
-#define MOTOR_4               10    //   2\\-------//3 
-#define DEFAULT_HANDICAP      1
-#define ALTERNATE_HANDICAP    3
-#define KID_HANDICAP          5
-#define PI_OVER_2             M_PI/2
-#define PI_OVER_4             M_PI/4
-#define TURN_HANDICAP_AMOUNT  1
-#define MAX_TURN 14
-
-Servo motor1, motor2, motor3, motor4;
-int motor1Drive, motor2Drive, motor3Drive, motor4Drive;
-int motor1Input = 90, motor2Input = 90, motor3Input = 90, motor4Input = 90;
-int xInput, yInput, turnInput;      // we just make these global so we don't have to
-                                    // reallocate memory every single loop
-float magn, angle;
-float motorReverse = 0;             // 0 for not reversed, M_PI for reversed (think 
-                                    // about your trig)
-int turnHandicap = 1;
+	#define MOTOR_1               7     //   1//-FRONT-\\4
+	#define MOTOR_2               8     //     |       |
+	#define MOTOR_3               9     //     |       |                                                                          <-- check this for accuracy
+	#define MOTOR_4               10    //   2\\-------//3 
+	#define DEFAULT_HANDICAP      1
+	#define ALTERNATE_HANDICAP    3
+	#define KID_HANDICAP          5
+	#define PI_OVER_2             M_PI/2
+	#define PI_OVER_4             M_PI/4
+	#define TURN_HANDICAP_AMOUNT  1
+	#define MAX_TURN 14
+	
+	Servo motor1, motor2, motor3, motor4;
+	int motor1Drive, motor2Drive, motor3Drive, motor4Drive;
+	int motor1Input = 90, motor2Input = 90, motor3Input = 90, motor4Input = 90;
+	int xInput, yInput, turnInput;      // we just make these global so we don't have to
+										// reallocate memory every single loop
+	float magn, angle;
+	float motorReverse = 0;             // 0 for not reversed, M_PI for reversed (think 
+										// about your trig)
+	int turnHandicap = 1;
 #endif
 
 #ifdef CENTER_PERIPHERALS
-#define CENTER_RELEASE        5
-#define CENTER_RELEASE_DOWN   120
-#define CENTER_RELEASE_UP     70
-
-Servo centerRelease;
+	#define CENTER_RELEASE        5
+	#define CENTER_RELEASE_DOWN   120
+	#define CENTER_RELEASE_UP     70
+	
+	Servo centerRelease;
 #endif
 
 #ifdef QB_PERIPHERALS
-#define QB_THROWER            5
-Servo qbThrower;
-#define TRIANGLE_THROW        175
-#define CIRCLE_THROW          125
-#define CROSS_THROW           108
-
-#define SQUARE_THROW          102
-#define RELOAD_THROW          88
-int throwOffset = 0;                //used to adjust strength of cross and circle throws
+	#define QB_THROWER            5
+	Servo qbThrower;
+	#define TRIANGLE_THROW        175
+	#define CIRCLE_THROW          125
+	#define CROSS_THROW           108
+	
+	#define SQUARE_THROW          102
+	#define RELOAD_THROW          88
+	int throwOffset = 0;                //used to adjust strength of cross and circle throws
 #endif
 
 #ifdef KICKER_PERIPHERALS
-#define KICKER_MOTOR          5
-#define KICKER_POWER          175
-#define KICKER_RELOAD         85
-Servo kicker;
+	#define KICKER_MOTOR          5
+	#define KICKER_POWER          175
+	#define KICKER_RELOAD         85
+	Servo kicker;
 #endif
 
 #ifdef ROTATION_LOCK
-#define MINIMUM_ANGLE               5
-#define SAMPLE_PERIOD               50
-#define ROTATION_CORRECT_MAGNITUDE  5
-Adafruit_BNO055 gyro = Adafruit_BNO055(55); //our rotation sensor;
-int rotationCorrect = 0;
-int desiredRotation = 0;
-sensors_event_t rotationReadout;
-int sample = 0;
-int wasIturning = 0;
+	#define MINIMUM_ANGLE               5
+	#define SAMPLE_PERIOD               50
+	#define ROTATION_CORRECT_MAGNITUDE  5
+	Adafruit_BNO055 gyro = Adafruit_BNO055(55); //our rotation sensor;
+	int rotationCorrect = 0;
+	int desiredRotation = 0;
+	sensors_event_t rotationReadout;
+	int sample = 0;
+	int wasIturning = 0;
 #endif
 
 /////////////////////////////////////////////////////////////////////
@@ -201,10 +198,14 @@ int motorCorrect = 0;               // This will help center the stop value of t
                                     // This is stuff for connecting the PS3 to USB.
 int newconnect = 0;                 // Variable(boolean) for connection to ps3, also 
                                     // activates rumble
+									
+// Series of Class Declerations
+// Do not Touch									
 USB Usb;
 USBHub Hub1(&Usb);
 BTD Btd(&Usb);
 PS3BT PS3(&Btd);
+// End Series of Class Declerations
 
 void eStop();
 void driveCtrl();
@@ -607,6 +608,7 @@ void driveCtrl()
   }
   
 #endif
+  
   Serial.print(rotationCorrect);
   Serial.print("   ");
   Serial.println(desiredRotation);
@@ -689,29 +691,29 @@ void kickerCtrl()
 #endif
 
 #ifdef LED_STRIP
-void flashLed()
-{
-  //flash the leds
-  digitalWrite(RED_LED, LOW);
-  digitalWrite(BLUE_LED, LOW);
-  digitalWrite(GREEN_LED, HIGH);
-  delay(300);
-  digitalWrite(RED_LED, LOW);
-  digitalWrite(GREEN_LED, LOW);
-  digitalWrite(BLUE_LED, HIGH);
-  delay(300);
-  digitalWrite(BLUE_LED, LOW);
-  digitalWrite(GREEN_LED, LOW);
-  digitalWrite(RED_LED, HIGH);
-  delay(300);
-  digitalWrite(RED_LED, LOW);
-  digitalWrite(BLUE_LED, LOW);
-  digitalWrite(GREEN_LED, HIGH);
-  delay(300);
-  digitalWrite(RED_LED, LOW);
-  digitalWrite(GREEN_LED, LOW);
-  digitalWrite(BLUE_LED, HIGH);
-}
+	void flashLed()
+	{
+	//flash the leds
+	digitalWrite(RED_LED, LOW);
+	digitalWrite(BLUE_LED, LOW);
+	digitalWrite(GREEN_LED, HIGH);
+	delay(300);
+	digitalWrite(RED_LED, LOW);
+	digitalWrite(GREEN_LED, LOW);
+	digitalWrite(BLUE_LED, HIGH);
+	delay(300);
+	digitalWrite(BLUE_LED, LOW);
+	digitalWrite(GREEN_LED, LOW);
+	digitalWrite(RED_LED, HIGH);
+	delay(300);
+	digitalWrite(RED_LED, LOW);
+	digitalWrite(BLUE_LED, LOW);
+	digitalWrite(GREEN_LED, HIGH);
+	delay(300);
+	digitalWrite(RED_LED, LOW);
+	digitalWrite(GREEN_LED, LOW);
+	digitalWrite(BLUE_LED, HIGH);
+	}
 #endif
 
 #ifdef CENTER_PERIPHERALS
@@ -724,80 +726,82 @@ void centerCtrl()
 
 //Error handling for what parts of the code are enabled
 #ifdef BASIC_DRIVETRAIN
-#ifdef OMNIWHEEL_DRIVETRAIN
-#error Two drivetrains are enabled!
-#endif
-#ifdef ROTATION_LOCK
-#error Rotation lock is not normally used with a basic drivetrain...
-#endif
-#ifdef QB_PERIPHERALS
-#error Quarterback peripherals enabled with basic drivetrain. Quarterback requires an omniwheel drive
-#ifdef CENTER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#ifdef RECEIVER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#ifdef KICKER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
+	#ifdef OMNIWHEEL_DRIVETRAIN
+		#error Two drivetrains are enabled!
+	#endif
+	#ifdef ROTATION_LOCK
+		#error Rotation lock is not normally used with a basic drivetrain...
+	#endif
+	#ifdef QB_PERIPHERALS
+		#error Quarterback peripherals enabled with basic drivetrain. Quarterback requires an omniwheel drive
+		#ifdef CENTER_PERIPHERALS
+			#error Multiple peripherals enabled!
+			#endif
+		#ifdef RECEIVER_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+		#ifdef KICKER_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+	#endif
+	
+	#ifdef RECEIVER_PERIPHERALS
+		#warning You are making a receiver with a basic drivetrain. Make sure this is right.
+		#ifdef CENTER_PERIPHERALS
+		#error Multiple peripherals enabled!
+	#endif
+		#ifdef QB_PERIPHERALS
+		#error Multiple peripherals enabled!
+	#endif
+		#ifdef KICKER_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+	#endif
 #endif
 
-#ifdef RECEIVER_PERIPHERALS
-#warning You are making a receiver with a basic drivetrain. Make sure this is right.
-#ifdef CENTER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#ifdef QB_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#ifdef KICKER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#endif
-#endif
 
 #ifdef OMNIWHEEL_DRIVETRAIN
-#ifdef CENTER_PERIPHERALS
-#error The center does not have an omniwheel drive, last I checked...
-#ifdef QB_PERIPHERALS
-#error Multiple peripherals enabled!
+	#ifdef CENTER_PERIPHERALS
+		#error The center does not have an omniwheel drive, last I checked...
+		#ifdef QB_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+		#ifdef RECEIVER_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+		#ifdef KICKER_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+	#endif
+	#ifdef KICKER_PERIPHERALS
+		#error Kicker does not use an omniwheel drive!
+		#ifdef CENTER_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+		#ifdef RECEIVER_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+		#ifdef QB_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+	#endif
+	#ifdef RECEIVER_PERIPHERALS
+		#warning You are making a receiver with an omniwheel drivetrain. Make sure this is right.
+		#ifdef CENTER_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+		#ifdef QB_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+		#ifdef KICKER_PERIPHERALS
+			#error Multiple peripherals enabled!
+		#endif
+	#endif
 #endif
-#ifdef RECEIVER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#ifdef KICKER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#endif
-#ifdef KICKER_PERIPHERALS
-#error Kicker does not use an omniwheel drive!
-#ifdef CENTER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#ifdef RECEIVER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#ifdef QB_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#endif
-#ifdef RECEIVER_PERIPHERALS
-#warning You are making a receiver with an omniwheel drivetrain. Make sure this is right.
-#ifdef CENTER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#ifdef QB_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#ifdef KICKER_PERIPHERALS
-#error Multiple peripherals enabled!
-#endif
-#endif
-#endif
+
 
 #ifndef BASIC_DRIVETRAIN
-#ifndef OMNIWHEEL_DRIVETRAIN
-#warning You don't have a drivetrain enabled! Don't expect this robot to drive!
-#endif
+	#ifndef OMNIWHEEL_DRIVETRAIN
+		#warning You don't have a drivetrain enabled! Don't expect this robot to drive!
+	#endif
 #endif
