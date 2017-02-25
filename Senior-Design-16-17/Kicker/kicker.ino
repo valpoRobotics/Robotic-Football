@@ -49,11 +49,11 @@ Servo rightMotor;                 //Right motor
 Servo kickerMotor;                //Center motor
 bool lockout;                     // 1 if in lockout mode, 0 if ready for kick
 unsigned long timeOfLastLockout = 0;
-#define TRIANGLE_KICK_VALUE  180
+#define TRIANGLE_KICK_VALUE  179
 #define CIRCLE_KICK_VALUE    150
 #define CROSS_KICK_VALUE     130
 #define SQUARE_KICK_VALUE    110
-#define RELOAD_VALUE         75
+#define RELOAD_VALUE         20
 #define LOCKOUT_DELAY_TIME   2000 //millis
 
 int newconnect = 0;               //Variable(boolean) for connection to ps3, also activates rumble
