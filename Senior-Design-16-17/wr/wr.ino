@@ -13,7 +13,7 @@
 #include <usbhub.h>
 #include <Servo.h>
 
-#define DEBUG
+//#define DEBUG
 
 //change pin inputs here
 #define REDLED        11
@@ -42,8 +42,8 @@ int bowDirection = FORWARD;
 #define LED_STATUS_KIDMODE  15
 
 #define TURBO         1
-#define HANDICAP      2           //The amount the motor speed is divided by
-#define KID_HANDICAP  3
+#define HANDICAP      3           //The amount the motor speed is divided by
+#define KID_HANDICAP  7
 int currentHandicap = HANDICAP;
 bool kidMode = false;
 
@@ -56,6 +56,7 @@ int Drive = 0;                    //Initial speed before turning calculations
 int Turn = 0;                     //Turn is adjustment to drive for each motor separately to create turns
 
 int motorCorrect = 0;             //This will help center the stop value of the motors
+#define TURN_LIMITER 0.6
 
 #define RED   1
 #define GREEN 2
@@ -155,12 +156,9 @@ void loop() {
       toggleServo();
     }
 
-    if (PS3.getButtonPress(L3))
+    if (PS3.getButtonClick(R1))
     {
-      if(PS3.getButtonClick(R3))
-      {
-        toggleBowDirection();
-      }
+      toggleBowDirection();
     }
     
     if (PS3.getButtonPress(R2) && !kidMode)
@@ -183,9 +181,10 @@ void loop() {
     int xInput = map(PS3.getAnalogHat(RightHatX), 0, 255, 90, -90); //Recieves PS3 horizontal input and sets it to an inverted scale of 90 to -90
     setGreen();
 
+    
     if (abs(yInput) < DEADZONE) yInput = 0;
     if (abs(xInput) < DEADZONE) xInput = 0;
-    
+    yInput *= TURN_LIMITER;
     //Instead of following some sort of equation to slow down acceleration
     //We just increment the speed by one towards the desired speed.
     //The acceleration is then slowed because of the loop cycle time
