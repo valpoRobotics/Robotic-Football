@@ -7,6 +7,7 @@
   ======                 =====                =====
   JAN/19/17               AWR                 code adapted from Kicker progress from Jan/19/17
   JAN/21/17               AWR                 added servo functionality, reversable drive
+  MAR/29/17               AWR                 added turn handicap
 */
 
 #include <PS3BT.h>
@@ -184,7 +185,7 @@ void loop() {
     
     if (abs(yInput) < DEADZONE) yInput = 0;
     if (abs(xInput) < DEADZONE) xInput = 0;
-    yInput *= TURN_LIMITER;
+    xInput *= TURN_LIMITER;
     //Instead of following some sort of equation to slow down acceleration
     //We just increment the speed by one towards the desired speed.
     //The acceleration is then slowed because of the loop cycle time
