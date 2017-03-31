@@ -29,8 +29,8 @@
 #define LEFT_FLIP -1
 #define RIGHT_FLIP 1
 #define DEADZONE 8
-#define SERVO_UP_POS 120
-#define SERVO_DN_POS 30
+#define SERVO_UP_POS 25
+#define SERVO_DN_POS 110
 #define SERVO_UP true
 #define SERVO_DN false
 bool servoState = SERVO_DN;
@@ -74,7 +74,7 @@ void setup() {
   //Assign motor pin outs
   leftMotor.attach(LEFT_MOTOR,      1000, 2000);
   rightMotor.attach(RIGHT_MOTOR,    1000, 2000);
-  servoMotor.attach(SERVO_MOTOR,    1000, 2000);
+  servoMotor.attach(SERVO_MOTOR,    560, 25200);
 
   stop();
 
@@ -236,7 +236,7 @@ void stop()
 {
   leftMotor.writeMicroseconds(1500);
   rightMotor.writeMicroseconds(1500);
-  servoMotor.writeMicroseconds(1500);
+  servoMotor.write(SERVO_DN_POS);
 }
 
 void flashLEDs()
