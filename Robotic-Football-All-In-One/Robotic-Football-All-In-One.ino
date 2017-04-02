@@ -8,6 +8,7 @@
    Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
 */
 #define BASIC_DRIVETRAIN
+#define DUAL_MOTORS
 //#define OMNIWHEEL_DRIVETRAIN
 //#define CENTER_PERIPHERALS
 //#define QB_PERIPHERALS
@@ -24,7 +25,7 @@
    1.0.2 - Matt Bull- added ability to disconnect controller to the main loop for testing eStop
    1.0.3 - Aaron Roggow - added compass code to quarterback (rotation_lock)
    1.0.4 - Aaron Roggow - added red led
-   
+
 
    Controls...
    SELECT - enter/exit CALIBRATION MODE - note, will exit into normal drive mode
@@ -106,24 +107,34 @@ int tackled = 1;                    // Tackle detects if the robot has been tack
 
 #ifdef BASIC_DRIVETRAIN
 #define LEFT_MOTOR_REVERSE    -1    // these are to reverse the motor direction if 
-                                    // a motor is wired backwards.
+// a motor is wired backwards.
 #define RIGHT_MOTOR_REVERSE   1     // In almost every case, it would be better to 
-                                    // fix the wiring than to change this in code
+// fix the wiring than to change this in code
 
 #define LEFT_MOTOR            9
 #define RIGHT_MOTOR           10
+
+#ifdef DUAL_MOTORS
+#define LEFT_MOTOR2           7
+#define RIGHT_MOTOR2          8
+#endif
+
+
 #define ALTERNATE_HANDICAP    1
 #define DEFAULT_HANDICAP      3     // omniwheel and basic drivetrains both have their 
-                                    // own version of this
+// own version of this
 #define KID_HANDICAP          7     // and this
 
 #define MAX_DRIVE             84    // limited because of issues with calibrating 
-                                    // victors to full 0-180 range
+// victors to full 0-180 range
 
 Servo leftMotor, rightMotor;
+#ifdef DUAL_MOTORS
+Servo leftMotor2, rightMotor2;
+#endif
 int drive = 0;                      // Initial speed before turning calculations
-int turn = 0;                       // Turn is adjustment to drive for each motor 
-                                    // separately to create turns
+int turn = 0;                       // Turn is adjustment to drive for each motor
+// separately to create turns
 int xInput, yInput, throttleL, throttleR;
 #endif
 
@@ -144,10 +155,10 @@ Servo motor1, motor2, motor3, motor4;
 int motor1Drive, motor2Drive, motor3Drive, motor4Drive;
 int motor1Input = 90, motor2Input = 90, motor3Input = 90, motor4Input = 90;
 int xInput, yInput, turnInput;      // we just make these global so we don't have to
-                                    // reallocate memory every single loop
+// reallocate memory every single loop
 float magn, angle;
-float motorReverse = 0;             // 0 for not reversed, M_PI for reversed (think 
-                                    // about your trig)
+float motorReverse = 0;             // 0 for not reversed, M_PI for reversed (think
+// about your trig)
 int turnHandicap = 1;
 #endif
 
@@ -194,13 +205,13 @@ int wasIturning = 0;
 // Universal stuffs
 /////////////////////////////////////////////////////////////////////
 int state = DRIVING;                // the current state the robot is in
-int handicap = DEFAULT_HANDICAP;    // because of this line we have to have one of the 
-                                    // drivetrains enabled
-int motorCorrect = 0;               // This will help center the stop value of the 
-                                    // motors
-                                    // This is stuff for connecting the PS3 to USB.
-int newconnect = 0;                 // Variable(boolean) for connection to ps3, also 
-                                    // activates rumble
+int handicap = DEFAULT_HANDICAP;    // because of this line we have to have one of the
+// drivetrains enabled
+int motorCorrect = 0;               // This will help center the stop value of the
+// motors
+// This is stuff for connecting the PS3 to USB.
+int newconnect = 0;                 // Variable(boolean) for connection to ps3, also
+// activates rumble
 USB Usb;
 USBHub Hub1(&Usb);
 BTD Btd(&Usb);
@@ -218,6 +229,13 @@ void setup() {
   leftMotor.writeMicroseconds(1500); //stopped
   rightMotor.attach(RIGHT_MOTOR, 1000, 2000);
   rightMotor.writeMicroseconds(1500);
+#endif
+
+#ifdef DUAL_MOTORS
+  leftMotor2.attach(LEFT_MOTOR2, 1000, 2000);
+  leftMotor2.writeMicroseconds(1500);
+  rightMotor2.attach(RIGHT_MOTOR2, 1000, 2000);
+  rightMotor2.writeMicroseconds(1500);
 #endif
 
 #ifdef OMNIWHEEL_DRIVETRAIN
@@ -261,7 +279,7 @@ void setup() {
   //Begin Serial Communications
   Serial.begin(115200);
   if (Usb.Init() == -1)                 // this is for an error message with USB connections
-  {                               
+  {
     Serial.print(F("\r\nOSC did not start"));
     while (1);
   }
@@ -283,16 +301,16 @@ void loop()
 {
   Usb.Task();                           // This updates the input from the PS3 controller
 
-  if (PS3.PS3Connected)                 // This only lets the program run if the PS3 
-                                        // controller is connected.
+  if (PS3.PS3Connected)                 // This only lets the program run if the PS3
+    // controller is connected.
   {
     if (PS3.getButtonClick(PS)) {
       PS3.disconnect();
       newconnect = 0;
     }
-    if (newconnect == 0)                // this is the vibration that you feel when you 
-                                        // first connect
-    { 
+    if (newconnect == 0)                // this is the vibration that you feel when you
+      // first connect
+    {
       newconnect++;
       //Serial.println("Rumble is on!");
       PS3.moveSetRumble(64);
@@ -305,7 +323,7 @@ void loop()
     }
 
     if (state == CALIBRATION)
-    {                                     //CALIBRATION MODE
+    { //CALIBRATION MODE
       if (PS3.getButtonClick(UP))
       {
         motorCorrect++;
@@ -331,10 +349,10 @@ void loop()
       eStop();
     }
     else
-    {                                     // NORMAL OPERATION MODE
+    { // NORMAL OPERATION MODE
 #ifdef TACKLE                             // this fancy bit here changes the condition 
-                                          // for the if statement for whether or not 
-                                          // tackle is enabled. cool stuff
+      // for the if statement for whether or not
+      // tackle is enabled. cool stuff
       tackled = digitalRead(TACKLE_INPUT);
 
       if (tackled && (state == DRIVING || state == KID))
@@ -351,8 +369,8 @@ void loop()
           PS3.setRumbleOn(5, 0, 5, 255);
         }
         if (PS3.getButtonClick(START))
-        {                                   // switches between normal driving mode
-                                            // and kid mode
+        { // switches between normal driving mode
+          // and kid mode
           if (state == DRIVING)
           {
             state = KID;
@@ -448,6 +466,11 @@ void eStop()
   leftMotor.writeMicroseconds(1500);
   rightMotor.writeMicroseconds(1500);
 #endif
+#ifdef DUAL_MOTORS
+  leftMotor2.writeMicroseconds(1500);
+  rightMotor2.writeMicroseconds(1500);
+#endif
+
 #ifdef OMNIWHEEL_DRIVETRAIN
   motor1.writeMicroseconds(1500);
   motor2.writeMicroseconds(1500);
@@ -462,31 +485,36 @@ void eStop()
 void driveCtrl()
 {
 #ifdef BASIC_DRIVETRAIN
-  yInput = map(PS3.getAnalogHat(LeftHatY), 0, 255, -90, 90);  // Recieves PS3 
-                                                              // forward/backward input
+  yInput = map(PS3.getAnalogHat(LeftHatY), 0, 255, -90, 90);  // Recieves PS3
+  // forward/backward input
   xInput = map(PS3.getAnalogHat(RightHatX), 0, 255, 90, -90); // Recieves PS3
-                                                              // horizontal input and 
-                                                              // sets it to an inverted
-                                                              // scale of 90 to -90
+  // horizontal input and
+  // sets it to an inverted
+  // scale of 90 to -90
 
   if (abs(yInput) < 8) yInput = 0;                            // deals with the stickiness
   if (abs(xInput) < 8) xInput = 0;                            // of PS3 joysticks
 
   if ((yInput == 0) && (xInput == 0))
-  {                                               // if no input this should ensure that
-                                                  // the motors actually stop, and skip the rest 
-                                                  // of the drive function
+  { // if no input this should ensure that
+    // the motors actually stop, and skip the rest
+    // of the drive function
+#ifdef DUAL_MOTORS
+    leftMotor2.writeMicroseconds(1500);
+    rightMotor2.writeMicroseconds(1500);
+#endif
     leftMotor.writeMicroseconds(1500);
-    rightMotor.writeMicroseconds(1500);
+    rightMotor.writeMicroseconds(1500); \
+
     return;
   }
 
-                                                  // Instead of following some sort of
-                                                  // equation to slow down acceleration
-                                                  // We just increment the speed by one
-                                                  // towards the desired speed.
-                                                  // The acceleration is then slowed 
-                                                  // because of the loop cycle time
+  // Instead of following some sort of
+  // equation to slow down acceleration
+  // We just increment the speed by one
+  // towards the desired speed.
+  // The acceleration is then slowed
+  // because of the loop cycle time
 
   if (drive < yInput)drive++;                     // Accelerates
   else if (drive > yInput) drive--;               // Decelerates
@@ -494,9 +522,9 @@ void driveCtrl()
   if (turn < xInput) turn++;
   else if (turn > xInput) turn--;
 
-  throttleL = LEFT_MOTOR_REVERSE * ((drive + turn) / handicap) + motorCorrect;  
-                                                  // This is the final variable that 
-                                                  // decides motor speed.
+  throttleL = LEFT_MOTOR_REVERSE * ((drive + turn) / handicap) + motorCorrect;
+  // This is the final variable that
+  // decides motor speed.
   throttleR = RIGHT_MOTOR_REVERSE * ((drive - turn) / handicap ) + motorCorrect;
 
   if (throttleL > MAX_DRIVE) throttleL = MAX_DRIVE;
@@ -507,13 +535,17 @@ void driveCtrl()
   leftMotor.write(throttleL + 90);                // Sending values to the speed controllers
   rightMotor.write(throttleR + 90);
 #endif
+#ifdef DUAL_MOTORS
+  leftMotor2.write(throttleL + 90);                // Sending values to the speed controllers
+  rightMotor2.write(throttleR + 90);
+#endif
 
 
 
 #ifdef OMNIWHEEL_DRIVETRAIN
   yInput = map(PS3.getAnalogHat(LeftHatY), 0, 255, 90, -90);      // Recieves PS3 forward/backward input
-  xInput = map(PS3.getAnalogHat(LeftHatX), 0, 255, 90, -90);      // Recieves PS3 horizontal input and 
-                                                                  // sets it to an inverted scale of 90 to -90
+  xInput = map(PS3.getAnalogHat(LeftHatX), 0, 255, 90, -90);      // Recieves PS3 horizontal input and
+  // sets it to an inverted scale of 90 to -90
   turnInput = map(PS3.getAnalogHat(RightHatX), 0, 255, -MAX_TURN, MAX_TURN);  // received turn input from right joystick
   if (!PS3.getButtonPress(L2))
   {
@@ -541,8 +573,8 @@ void driveCtrl()
   if (abs(yInput) < 8)yInput = 0;                     // taking care of sticky input
   if (abs(xInput) < 8)xInput = 0;
   if (abs(turnInput) < 2)turnInput = 0;               // this one is likely taken care
-                                                      // of by integer rounding already
-                                                      // rounding
+  // of by integer rounding already
+  // rounding
 
   magn = sqrt(pow(xInput, 2) + pow(yInput, 2));       // finding magnitude of input
   //magn = map(magn, 0, float(90) * sqrt(2.0), 0, 60);// need to investigate the purpose of this
@@ -553,33 +585,33 @@ void driveCtrl()
   sample++;
   if (PS3.getButtonClick(R3))
   {
-      gyro.getEvent(&rotationReadout);
-      desiredRotation = rotationReadout.orientation.x;
-      rotationCorrect = 0;
-      PS3.setRumbleOn(10, 255, 10, 255); //vibrate! 
-      sample = 0;  
-   }
-   
-  if(turnInput)
+    gyro.getEvent(&rotationReadout);
+    desiredRotation = rotationReadout.orientation.x;
+    rotationCorrect = 0;
+    PS3.setRumbleOn(10, 255, 10, 255); //vibrate!
+    sample = 0;
+  }
+
+  if (turnInput)
   {
     rotationCorrect = 0;
     wasIturning = 1;
     sample = 0;
   }
-  
+
   else if ((sample >= SAMPLE_PERIOD))
   {
     sample = 0;
     gyro.getEvent(&rotationReadout);
     int difference = rotationReadout.orientation.x - desiredRotation;
-    if ((difference < 0 && difference > -180) || difference > 180) 
-    {                                                   //turning left condition
+    if ((difference < 0 && difference > -180) || difference > 180)
+    { //turning left condition
       difference = -(abs(difference - 360) % 360);
     }
     else                                                //turning right condition
     {
       difference = abs(difference + 360) % 360;
-    }  
+    }
     if (difference > MINIMUM_ANGLE)
     {
       rotationCorrect = -ROTATION_CORRECT_MAGNITUDE;
@@ -593,7 +625,7 @@ void driveCtrl()
       rotationCorrect = 0;
     }
 
-    if(wasIturning)
+    if (wasIturning)
     {
       if (difference == 0)
       {
@@ -605,23 +637,23 @@ void driveCtrl()
       }
     }
   }
-  
+
 #endif
   Serial.print(rotationCorrect);
   Serial.print("   ");
   Serial.println(desiredRotation);
 
   motor4Drive = ((magn * (sin(angle + PI_OVER_4 + motorReverse)) / handicap)
-                + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
+                 + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
 
-  motor1Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + motorReverse)) / handicap)                          
-                + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
+  motor1Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + motorReverse)) / handicap)
+                 + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
 
-  motor2Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + PI_OVER_2 + motorReverse)) / handicap)              
-                + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
+  motor2Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + PI_OVER_2 + motorReverse)) / handicap)
+                 + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
 
-  motor3Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + PI_OVER_2 + PI_OVER_2 + motorReverse)) / handicap)  
-                + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
+  motor3Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + PI_OVER_2 + PI_OVER_2 + motorReverse)) / handicap)
+                 + (float)(turnHandicap * turnInput) + 90 + rotationCorrect + motorCorrect);
 
   if (motor1Drive < 5)motor1Drive = 5;
   else if (motor1Drive > 175)motor1Drive = 175;
@@ -758,6 +790,9 @@ void centerCtrl()
 #endif
 
 #ifdef OMNIWHEEL_DRIVETRAIN
+#ifdef DUAL_MOTORS
+#error dual motors with an omniwheel? perposterous!
+#endif
 #ifdef CENTER_PERIPHERALS
 #error The center does not have an omniwheel drive, last I checked...
 #ifdef QB_PERIPHERALS
