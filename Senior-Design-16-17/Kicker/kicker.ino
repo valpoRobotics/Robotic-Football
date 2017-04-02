@@ -9,6 +9,7 @@
   JAN/19/17               AWR                 updated debug messaging, added kids mode
   JAN/26/17               AWR                 added kicking, electronic lockout
   MAR/30/17               AWR                 added mechanical lock servo
+  APR/02/17               AWR                 fix critical kicking lockout bug
 */
 
 #include <PS3BT.h>
@@ -210,7 +211,7 @@ void loop() {
     leftMotor.write((ThrottleL + 90 + motorCorrect)); //Sending values to the speed controllers
     rightMotor.write((ThrottleR + 90 + motorCorrect));
 
-    if (PS3.getButtonClick(L1))
+    if (PS3.getButtonClick(R1) && !servoLocked)
     {
       servoMotor.write(SERVO_LOCK_POSITION);
       servoLocked = true;
@@ -232,7 +233,7 @@ void loop() {
     {
       if ((millis() - timeOfLastLockout) > LOCKOUT_DELAY_TIME)
       {
-        if (PS3.getButtonClick(R1))
+        if (PS3.getButtonClick(R1) && servoLocked)
         {
           servoMotor.write(SERVO_UNLOCK_POSITION);
           servoLocked = false;
@@ -273,6 +274,7 @@ void loop() {
 #endif
             kickerMotor.write(SQUARE_KICK_VALUE);
           }
+          else kickerMotor.writeMicroseconds(1500);
         }
         else
         {
