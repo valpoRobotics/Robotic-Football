@@ -211,15 +211,17 @@ void loop() {
     leftMotor.write((ThrottleL + 90 + motorCorrect)); //Sending values to the speed controllers
     rightMotor.write((ThrottleR + 90 + motorCorrect));
 
-    if (PS3.getButtonClick(R1) && !servoLocked)
+    if (!servoLocked)
     {
-      servoMotor.write(SERVO_LOCK_POSITION);
-      servoLocked = true;
+      if (PS3.getButtonClick(R1))
+      {
+        servoMotor.write(SERVO_LOCK_POSITION);
+        servoLocked = true;
 #ifdef DEBUG
-      Serial.print(" Servo Locked ");
+        Serial.print(" Servo Locked ");
 #endif
+      }
     }
-
 
     lockout = digitalRead(LOCKOUT_PIN);
     /*if(PS3.getButtonPress(R1) && !kidMode)
@@ -233,13 +235,16 @@ void loop() {
     {
       if ((millis() - timeOfLastLockout) > LOCKOUT_DELAY_TIME)
       {
-        if (PS3.getButtonClick(R1) && servoLocked)
+        if (servoLocked)
         {
-          servoMotor.write(SERVO_UNLOCK_POSITION);
-          servoLocked = false;
+          if (PS3.getButtonClick(R1))
+          {
+            servoMotor.write(SERVO_UNLOCK_POSITION);
+            servoLocked = false;
 #ifdef DEBUG
-          Serial.print(" Servo Unlocked ");
+            Serial.print(" Servo Unlocked ");
 #endif
+          }
         }
 #ifdef DEBUG
         Serial.print(" Kicking Power: ");
@@ -284,10 +289,10 @@ void loop() {
           kickerMotor.writeMicroseconds(1500);
         }
         /*
-        if (PS3.getButtonClick(R1))
-        {
+          if (PS3.getButtonClick(R1))
+          {
           servoMotor.write(SERVO_UNLOCK_POSITION);
-        }*/
+          }*/
       }
       else
       {
