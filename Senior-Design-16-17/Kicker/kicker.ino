@@ -8,6 +8,7 @@
   DEC/06/16               AWR                 file creation, drivetrain written
   JAN/19/17               AWR                 updated debug messaging, added kids mode
   JAN/26/17               AWR                 added kicking, electronic lockout
+  FEB/02/17               AWR                 added bow direction flipping
   MAR/30/17               AWR                 added mechanical lock servo
   APR/02/17               AWR                 fix critical kicking lockout bug
 */
@@ -16,7 +17,7 @@
 #include <usbhub.h>
 #include <Servo.h>
 
-#define DEBUG
+//#define DEBUG
 
 //change pin inputs here
 #define REDLED        11
@@ -32,6 +33,13 @@
 #define LEFT_FLIP -1
 #define RIGHT_FLIP 1
 #define DEADZONE 8
+#define FORWARD -1              // note this is flipped from the WR
+#define BACKWARD 1
+int bowDirection = FORWARD;
+
+#define LED_STATUS_FORWARD  1
+#define LED_STATUS_BACKWARD 9
+#define LED_STATUS_KIDMODE  15
 
 #define TURBO         1
 #define HANDICAP      2           //The amount the motor speed is divided by
@@ -122,7 +130,8 @@ void loop() {
       Serial.println("Disconnect");
 #endif
       kidMode = false;
-      PS3.disconnect();
+      PS3.disconnect();      
+      setBowDirection(FORWARD);
       newconnect = 0;
       setBlue();
       stop();
@@ -139,7 +148,7 @@ void loop() {
           Serial.print("Entering Kid Mode ");
 #endif
           PS3.setRumbleOff();
-          PS3.setLedRaw(15);
+          PS3.setLedRaw(LED_STATUS_KIDMODE);
           currentHandicap = KID_HANDICAP;
         }
         else
@@ -149,7 +158,8 @@ void loop() {
           Serial.print("Exiting Kid Mode ");
 #endif
           PS3.setRumbleOff();
-          PS3.setLedRaw(1);
+          if(FORWARD == bowDirection) PS3.setLedRaw(LED_STATUS_FORWARD);
+          else PS3.setLedRaw(LED_STATUS_BACKWARD);
           currentHandicap = HANDICAP;
         }
       }
@@ -171,6 +181,11 @@ void loop() {
 #endif
     }
 
+    if (PS3.getButtonClick(L1))
+    {
+      toggleBowDirection();
+    }
+    
     int yInput = map(PS3.getAnalogHat(LeftHatY), 0, 255, -90, 90); //Recieves PS3 forward/backward input
     int xInput = map(PS3.getAnalogHat(RightHatX), 0, 255, 90, -90); //Recieves PS3 horizontal input and sets it to an inverted scale of 90 to -90
     setGreen();
@@ -191,8 +206,8 @@ void loop() {
     if (PS3.getButtonClick(UP)) motorCorrect++;
     if (PS3.getButtonClick(DOWN)) motorCorrect--;
 
-    int ThrottleL = LEFT_FLIP * ((Drive + Turn) / currentHandicap); //This is the final variable that decides motor speed.
-    int ThrottleR = RIGHT_FLIP * ((Drive - Turn) / currentHandicap);
+    int ThrottleL =  LEFT_FLIP * ((((bowDirection * Drive)) / currentHandicap) + Turn); //This is the final variable that decides motor speed.
+    int ThrottleR = RIGHT_FLIP * ((((bowDirection * Drive)) / currentHandicap) - Turn);
 
     if (ThrottleL > 90) ThrottleL = 90;
     else if (ThrottleL < -90) ThrottleL = -90;
@@ -365,4 +380,43 @@ void setBlue()
   digitalWrite(GREENLED,  LOW);
   digitalWrite(REDLED,    LOW);
   digitalWrite(BLUELED,   HIGH);
+}
+
+void toggleBowDirection()
+{
+  if(FORWARD == bowDirection)
+  {
+    bowDirection = BACKWARD;
+    PS3.setRumbleOff();
+    PS3.setLedRaw(LED_STATUS_BACKWARD);
+    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!        
+  }
+  else if(BACKWARD == bowDirection)
+  {
+    bowDirection = FORWARD;
+    PS3.setRumbleOff();
+    if(!kidMode) PS3.setLedRaw(LED_STATUS_FORWARD);
+    else PS3.setLedRaw(LED_STATUS_KIDMODE);
+    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!      
+  }
+}
+
+void setBowDirection(int dir)
+{
+  if(dir = bowDirection) return;
+  if(BACKWARD == dir)
+  {
+    bowDirection = BACKWARD;
+    PS3.setRumbleOff();
+    PS3.setLedRaw(LED_STATUS_BACKWARD);
+    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!        
+  }
+  else if(FORWARD == bowDirection)
+  {
+    bowDirection = FORWARD;
+    PS3.setRumbleOff();
+    if(!kidMode) PS3.setLedRaw(LED_STATUS_FORWARD);
+    else PS3.setLedRaw(LED_STATUS_KIDMODE);
+    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!      
+  }
 }
