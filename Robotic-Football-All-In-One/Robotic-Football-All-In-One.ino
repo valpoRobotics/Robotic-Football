@@ -10,20 +10,20 @@
 int driveState = EEPROM.read(0); //Reads value from the first value form the EEPROM
 int inverting = 0;              //Sets inverting to 0
  
-//#define BASIC_DRIVETRAIN		//uncomment for 2 drive wheels
+//#define BASIC_DRIVETRAIN    //uncomment for 2 drive wheels
 //#define DUAL_MOTORS
-//#define LR_TACKLE_PERIPHERALS     		//uncomment for special handicap for the tackles
-#define OMNIWHEEL_DRIVETRAIN	//uncomment for omniwheel robots
+//#define LR_TACKLE_PERIPHERALS         //uncomment for special handicap for the tackles
+#define OMNIWHEEL_DRIVETRAIN  //uncomment for omniwheel robots
 
 
-//#define CENTER_PERIPHERALS	//uncomment for special features of center 
-#define QB_PERIPHERALS			//uncomment for special QB features
-
+//#define CENTER_PERIPHERALS  //uncomment for special features of center 
+//#define QB_PERIPHERALS      //uncomment for special QB features
+#define IR_MAST
 //#define QB_TRACKING
-//#define KICKER_PERIPHERALS	//uncomment for special Kicker features
-//#define RECEIVER_PERIPHERALS	
-#define LED_STRIP				//uncomment for LED functionality
-#define TACKLE					//uncomment for tackle sensor functionality
+//#define KICKER_PERIPHERALS  //uncomment for special Kicker features
+//#define RECEIVER_PERIPHERALS  
+#define LED_STRIP       //uncomment for LED functionality
+#define TACKLE          //uncomment for tackle sensor functionality
 //#define ROTATION_LOCK
 /*
    Vesion History
@@ -180,6 +180,16 @@ int inverting = 0;              //Sets inverting to 0
   #define CENTER_RELEASE_UP     70    
   Servo centerRelease;                // define servo object for ball release 
 #endif
+
+#ifdef IR_MAST
+  #define IR_MAST_SERVO         5
+  Servo irMast;
+  #define SERVO_UP_POS 25
+  #define SERVO_DN_POS 110
+  #define SERVO_UP true
+  #define SERVO_DN false
+  bool servoState = SERVO_DN;
+#endif
  
 #ifdef QB_PERIPHERALS
 
@@ -305,7 +315,12 @@ void setup() {
   centerRelease.attach(CENTER_RELEASE);   // attach ball release servo to its pin
   centerRelease.write(CENTER_RELEASE_UP); // 
 #endif
- 
+
+#ifdef IR_MAST
+  irMast.attach(IR_MAST_SERVO,    560, 25200);
+  setServo(SERVO_DN);
+#endif
+
 #ifdef QB_PERIPHERALS
   qbThrower.attach(QB_THROWER);
   qbThrower.writeMicroseconds(1500);
@@ -471,7 +486,7 @@ void loop()
         }
       }
  
-#ifdef OMNIWHEEL_DRIVETRAIN
+#ifdef QB_PERIPHERALS
       if (PS3.getButtonPress(L1))
       {
         motorReverse = M_PI;              // this is reversed
@@ -488,6 +503,14 @@ void loop()
 #ifdef CENTER_PERIPHERALS
       centerCtrl();
 #endif
+
+#ifdef IR_MAST
+    if (PS3.getButtonClick(L1))
+    {
+      toggleServo();
+    }
+#endif
+
 #ifdef QB_TRACKING
         cameraCapture();
 #endif
@@ -580,6 +603,9 @@ void eStop()
 #endif
 #ifdef QB_PERIPHERALS
   qbThrower.writeMicroseconds(1500);
+#endif
+#ifdef IR_MAST
+  setServo(SERVO_DN);
 #endif
 }
  
@@ -829,12 +855,10 @@ void driveCtrl()
                 + (float)(turnHandicap * turnInput) + 90 + motorCorrect);
 
 #ifdef QB_TRACKING
-  motor1Drive += aimingFactor;
-  motor2Drive += aimingFactor;
-  motor3Drive += aimingFactor;
-  motor4Drive += aimingFactor;
-#endif
-
+  motor1Drive -= aimingFactor;
+  motor2Drive -= aimingFactor;
+  motor3Drive -= aimingFactor;
+  motor4Drive -= aimingFactor;
 #endif
 
   if (motor1Drive < 5)motor1Drive = 5;
@@ -950,7 +974,7 @@ void cameraCapture()
   //digitalWrite(BLUE_LED, LOW);
   for (i=0; i < 4; i++)
   {
-    if (CamX[i] != 1023)
+    if (CamX[i] != 1023 && CamX[i] != 0)
     {
       isWRSeen = true;
       //digitalWrite(BLUE_LED,HIGH);
@@ -1086,6 +1110,37 @@ void centerCtrl()
 {
   if (PS3.getButtonClick(TRIANGLE)) centerRelease.write(CENTER_RELEASE_UP);
   else if (PS3.getButtonClick(CROSS)) centerRelease.write(CENTER_RELEASE_DOWN);
+}
+#endif
+
+#ifdef IR_MAST
+void setServo(bool state)
+{
+  if(state == servoState) return; // requesting servo move to it's existing position
+  else if (SERVO_DN == state)
+  {
+    irMast.write(SERVO_DN_POS);
+    servoState = SERVO_DN;
+  }
+  else if (SERVO_UP == state)
+  {
+    irMast.write(SERVO_UP_POS);
+    servoState = SERVO_UP;
+  }
+}
+
+void toggleServo()
+{
+  if (SERVO_UP == servoState)
+  {
+    irMast.write(SERVO_DN_POS);
+    servoState = SERVO_DN;
+  }
+  else if (SERVO_DN == servoState)
+  {
+    irMast.write(SERVO_UP_POS);
+    servoState = SERVO_UP;
+  }
 }
 #endif
  
