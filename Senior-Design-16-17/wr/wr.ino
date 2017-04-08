@@ -1,7 +1,7 @@
 /*
   Software developed for use on Wide Reciever Gen 3
   Developed by Aaron Roggow(17) and John White(17)
-  
+
   Change log:
   Date                   Name                 Notes
   ======                 =====                =====
@@ -9,7 +9,6 @@
   JAN/21/17               AWR                 added servo functionality, reversable drive
   MAR/29/17               AWR                 added turn handicap
 */
-
 #include <PS3BT.h>
 #include <usbhub.h>
 #include <Servo.h>
@@ -23,14 +22,17 @@
 #define LEFT_MOTOR    9
 #define RIGHT_MOTOR   10
 #define SERVO_MOTOR   8
-#define IRLED         7
+#define IRLED         5
+#define TACKLE_PIN    7           // Tackle sensor is wired to pin 6
+int tackled = 1;                    // Tackle detects if the robot has been tackled (1 = not tackled)
+bool hasIndicatedTackle = false;    // variable to check if robot is previously in tackled state
 
 
 #define LEFT_FLIP -1
 #define RIGHT_FLIP 1
 #define DEADZONE 8
 #define SERVO_UP_POS 25
-#define SERVO_DN_POS 110
+#define SERVO_DN_POS 100
 #define SERVO_UP true
 #define SERVO_DN false
 bool servoState = SERVO_DN;
@@ -78,12 +80,14 @@ void setup() {
 
   stop();
 
-  pinMode(REDLED,   OUTPUT);
-  pinMode(BLUELED,  OUTPUT);
-  pinMode(GREENLED, OUTPUT);
-  pinMode(IRLED,    OUTPUT);
+  pinMode(REDLED,     OUTPUT);
+  pinMode(BLUELED,    OUTPUT);
+  pinMode(GREENLED,   OUTPUT);
+  pinMode(IRLED,      OUTPUT);
 
   flashLEDs();
+
+  pinMode(TACKLE_PIN, INPUT);
 
   setServo(SERVO_DN);
 
@@ -104,19 +108,19 @@ void loop() {
     if (newconnect == 0)
     {
       newconnect = 1;
-      #ifdef DEBUG
+#ifdef DEBUG
       Serial.println("Connection is good!");
-      #endif
+#endif
       PS3.moveSetRumble(64);
-      PS3.setRumbleOn(50, 255, 50, 255); //VIBRATE!!!    
+      PS3.setRumbleOn(50, 255, 50, 255); //VIBRATE!!!
       setBowDirection(FORWARD);
       setGreen();
     }
     if (PS3.getButtonClick(PS))
     {
-      #ifdef DEBUG
+#ifdef DEBUG
       Serial.println("Disconnect");
-      #endif
+#endif
       kidMode = false;
       PS3.disconnect();
       setBowDirection(FORWARD);
@@ -125,16 +129,35 @@ void loop() {
       stop();
     }
 
-    if(PS3.getButtonPress(SELECT))
+    tackled = !digitalRead(TACKLE_PIN);
+
+    if (tackled)
     {
-      if(PS3.getButtonClick(START))
+      setRed();
+      Serial.println("Tackled");
+      if (!hasIndicatedTackle)                    //Detects if the controller had vibrated when tackled
       {
-        if(!kidMode)
+        PS3.setRumbleOn(10, 255, 10, 255);
+        hasIndicatedTackle = true;
+
+      }
+    }
+    else
+    {
+      setGreen();
+      if (hasIndicatedTackle)hasIndicatedTackle = false;
+      Serial.println("Not Tackled");
+    }
+    if (PS3.getButtonPress(SELECT))
+    {
+      if (PS3.getButtonClick(START))
+      {
+        if (!kidMode)
         {
           kidMode = true;
-          #ifdef DEBUG
+#ifdef DEBUG
           Serial.print("Entering Kid Mode ");
-          #endif
+#endif
           PS3.setRumbleOff();
           PS3.setLedRaw(LED_STATUS_KIDMODE);
           currentHandicap = KID_HANDICAP;
@@ -142,9 +165,9 @@ void loop() {
         else
         {
           kidMode = false;
-          #ifdef DEBUG
+#ifdef DEBUG
           Serial.print("Exiting Kid Mode ");
-          #endif
+#endif
           PS3.setRumbleOff();
           PS3.setLedRaw(LED_STATUS_FORWARD);
           currentHandicap = HANDICAP;
@@ -161,28 +184,27 @@ void loop() {
     {
       toggleBowDirection();
     }
-    
+
     if (PS3.getButtonPress(R2) && !kidMode)
     {
-      #ifdef DEBUG
+#ifdef DEBUG
       Serial.print("Turbo! ");
-      #endif
+#endif
       currentHandicap = TURBO;
     }
     else if (!kidMode) currentHandicap = HANDICAP;
-    else 
+    else
     {
       currentHandicap = KID_HANDICAP;
-      #ifdef DEBUG
+#ifdef DEBUG
       Serial.print("Kid Mode! ");
-      #endif
+#endif
     }
-  
+
     int yInput = map(PS3.getAnalogHat(LeftHatY), 0, 255, -90, 90); //Recieves PS3 forward/backward input
     int xInput = map(PS3.getAnalogHat(RightHatX), 0, 255, 90, -90); //Recieves PS3 horizontal input and sets it to an inverted scale of 90 to -90
-    setGreen();
 
-    
+
     if (abs(yInput) < DEADZONE) yInput = 0;
     if (abs(xInput) < DEADZONE) xInput = 0;
     xInput *= TURN_LIMITER;
@@ -203,26 +225,26 @@ void loop() {
     int ThrottleR = RIGHT_FLIP * (((bowDirection * Drive) - Turn) / currentHandicap);
 
     if (ThrottleL > 90) ThrottleL = 90;
-    else if(ThrottleL < -90) ThrottleL = -90;
+    else if (ThrottleL < -90) ThrottleL = -90;
     if (ThrottleR > 90) ThrottleR = 90;
-    else if(ThrottleR < -90) ThrottleR = -90;
+    else if (ThrottleR < -90) ThrottleR = -90;
 
-    #ifdef DEBUG
+#ifdef DEBUG
     Serial.print("ThrottleL: ");
     Serial.print(ThrottleL);
     Serial.print(" ThrottleR: ");
     Serial.print(ThrottleR);
     Serial.print(" motorCorrect: ");
     Serial.print(motorCorrect);
-    if(SERVO_DN == servoState) Serial.print(" DN ");
-    else if(SERVO_UP == servoState) Serial.print(" UP ");
+    if (SERVO_DN == servoState) Serial.print(" DN ");
+    else if (SERVO_UP == servoState) Serial.print(" UP ");
     Serial.println(" ;");
-    #endif
+#endif
     leftMotor.write((ThrottleL + 90 + motorCorrect)); //Sending values to the speed controllers
     rightMotor.write((ThrottleR + 90 + motorCorrect));
-    
+
   }
-      
+
   else
   {
     Serial.println("Stop");
@@ -275,7 +297,7 @@ void setBlue()
 
 void setServo(bool state)
 {
-  if(state == servoState) return; // requesting servo move to it's existing position
+  if (state == servoState) return; // requesting servo move to it's existing position
   else if (SERVO_DN == state)
   {
     digitalWrite(IRLED, LOW);
@@ -294,7 +316,7 @@ void toggleServo()
 {
   if (SERVO_UP == servoState)
   {
-    digitalWrite(IRLED, LOW);
+    digitalWrite(IRLED, HIGH);
     servoMotor.write(SERVO_DN_POS);
     servoState = SERVO_DN;
   }
@@ -302,45 +324,45 @@ void toggleServo()
   {
     servoMotor.write(SERVO_UP_POS);
     servoState = SERVO_UP;
-    digitalWrite(IRLED, HIGH);
+    digitalWrite(IRLED, LOW);
   }
 }
 
 void toggleBowDirection()
 {
-  if(FORWARD == bowDirection)
+  if (FORWARD == bowDirection)
   {
     bowDirection = BACKWARD;
     PS3.setRumbleOff();
     PS3.setLedRaw(LED_STATUS_BACKWARD);
-    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!        
+    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!
   }
-  else if(BACKWARD == bowDirection)
+  else if (BACKWARD == bowDirection)
   {
     bowDirection = FORWARD;
     PS3.setRumbleOff();
-    if(!kidMode) PS3.setLedRaw(LED_STATUS_FORWARD);
+    if (!kidMode) PS3.setLedRaw(LED_STATUS_FORWARD);
     else PS3.setLedRaw(LED_STATUS_KIDMODE);
-    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!      
+    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!
   }
 }
 
 void setBowDirection(int dir)
 {
-  if(dir = bowDirection) return;
-  if(BACKWARD == dir)
+  if (dir = bowDirection) return;
+  if (BACKWARD == dir)
   {
     bowDirection = BACKWARD;
     PS3.setRumbleOff();
     PS3.setLedRaw(LED_STATUS_BACKWARD);
-    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!        
+    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!
   }
-  else if(FORWARD == bowDirection)
+  else if (FORWARD == bowDirection)
   {
     bowDirection = FORWARD;
     PS3.setRumbleOff();
-    if(!kidMode) PS3.setLedRaw(LED_STATUS_FORWARD);
+    if (!kidMode) PS3.setLedRaw(LED_STATUS_FORWARD);
     else PS3.setLedRaw(LED_STATUS_KIDMODE);
-    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!      
+    PS3.setRumbleOn(25, 255, 25, 255); //VIBRATE!!!
   }
 }
