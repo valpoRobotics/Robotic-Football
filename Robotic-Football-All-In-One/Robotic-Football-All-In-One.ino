@@ -450,16 +450,22 @@ void loop()
 #endif
     if (state == DRIVING || state == KID)
     {
+   // begin to move
+	// These should be moved to the top when integrated into main branch
+	#define arcadeMode 0
+	#define tankMode   1
+	#define driveModeAddress 0
+	// end to move
       if (PS3.getButtonClick(SELECT)) //Switch between tank drive and arcade mode. 0 is arcade 1 is tank
       {
         if (PS3.getButtonPress(L1)) {
-          if (driveState == 0) {
-            EEPROM.write(0, 1);
-            driveState = 1;
+          if (driveState == arcadeMode) {
+            EEPROM.write(driveModeAddress, tankMode);
+            driveState = tankMode;
           }
-          else if (driveState == 1) {
-            EEPROM.write(0, 0);
-            driveState = 0;
+          else if (driveState == tankMode) {
+            EEPROM.write(driveModeAddress, arcadeMode);
+            driveState = arcadeMode;
           }
         }
         //PS3.setLedRaw(15);                // ON ON ON ON
