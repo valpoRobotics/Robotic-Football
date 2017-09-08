@@ -1,7 +1,7 @@
 #include <EEPROM.h>
 /*
 
-This was a mistake.
+This was a mistake. duh.
 
    THE ALL-IN-ONE-PACKAGE - Robotic Football Edition!!!
    Enable and disable the desired features here.
