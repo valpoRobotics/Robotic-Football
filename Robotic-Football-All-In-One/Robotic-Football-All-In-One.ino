@@ -1,8 +1,5 @@
 #include <EEPROM.h>
 /*
-
-This was a mistake.
-
    THE ALL-IN-ONE-PACKAGE - Robotic Football Edition!!!
    Enable and disable the desired features here.
    There is error handling below for if things are enabled/disabled that shouldn't be.
