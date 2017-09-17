@@ -148,6 +148,9 @@ int inverting = 0;              //Sets inverting to 0
   #define KID_HANDICAP          7     // when in kids mode, speed s divided by 7
    
   #define MAX_DRIVE             84    // limited because of issues with calibrating victors to full 0-180 range
+  
+  #define ARCADE_MODE			0
+  #define TANK_MODE				1
    
   Servo leftMotor, rightMotor;        // Define motor objects
   int drive = 0;                      // Initial speed before turning calculations
@@ -280,9 +283,9 @@ void setup() {
   leftMotor.writeMicroseconds(1500);            //stopped
   rightMotor.attach(RIGHT_MOTOR, 1000, 2000);
   rightMotor.writeMicroseconds(1500);
-  if (driveState != 1 && driveState != 0) {   //If the EPPROM does not contain any values it will set it to one and default to arcade drive
+  if (driveState != TANK_MODE && driveState != ARCADE_MODE) {   //If the EPPROM does not contain any values it will set it to one and default to arcade drive
     EEPROM.write(0, 0);
-    driveState = 0;
+    driveState = ARCADE_MODE;
   }
 #endif
 
@@ -462,13 +465,13 @@ void loop()
       if (PS3.getButtonClick(SELECT)) //Switch between tank drive and arcade mode. 0 is arcade 1 is tank
       {
         if (PS3.getButtonPress(L1)) {
-          if (driveState == 0) {
+          if (driveState == ARCADE_MODE) {
             EEPROM.write(0, 1);
-            driveState = 1;
+            driveState = TANK_MODE;
           }
-          else if (driveState == 1) {
+          else if (driveState == TANK_MODE) {
             EEPROM.write(0, 0);
-            driveState = 0;
+            driveState = ARCADE_MODE;
           }
         }
         //PS3.setLedRaw(15);                // ON ON ON ON
@@ -621,7 +624,7 @@ void eStop()
 void driveCtrl()
 {
 #ifdef BASIC_DRIVETRAIN
-  if (driveState == 0) {
+  if (driveState == ARCADE_MODE) {
     yInput = map(PS3.getAnalogHat(LeftHatY), 0, 255, -90, 90);  // Recieves PS3
     // forward/backward input
     xInput = map(PS3.getAnalogHat(RightHatX), 0, 255, 90, -90); // Recieves PS3
@@ -675,7 +678,7 @@ void driveCtrl()
       rightMotor2.write(throttleR + 90);
     #endif
   }
-  else if (driveState == 1) {
+  else if (driveState == TANK_MODE) {
     if (inverting == 0) {
       yInput = map(PS3.getAnalogHat(LeftHatY), 0, 255, -90, 90);  // Recieves PS3
       // forward/backward input
@@ -953,7 +956,8 @@ void cameraCapture()
     data_buf[i] = Wire.read();
     i++;
   }
-  
+  // This appears to be taken from here https://www.dfrobot.com/wiki/index.php/Positioning_ir_camera
+  // also here 							 https://blog.squix.org/2016/05/esp8266-peripherals-indoor-positioning-with-ir-camera.html
   CamX[0] = data_buf[1];
   CamY[0] = data_buf[2];
   s = data_buf[3];
