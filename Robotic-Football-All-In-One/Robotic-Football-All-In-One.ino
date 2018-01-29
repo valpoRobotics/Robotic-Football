@@ -22,18 +22,28 @@ int inverting = 0;              //Sets inverting to 0
 //#define BASIC_DRIVETRAIN    //uncomment for 2 drive wheels
 //#define DUAL_MOTORS
 //#define LR_TACKLE_PERIPHERALS         //uncomment for special handicap for the tackles
-#define OMNIWHEEL_DRIVETRAIN  //uncomment for omniwheel robots
+//#define OMNIWHEEL_DRIVETRAIN  //uncomment for omniwheel robots
 
 
 //#define CENTER_PERIPHERALS  //uncomment for special features of center 
 //#define QB_PERIPHERALS      //uncomment for special QB features
-#define IR_MAST
+//#define IR_MAST
 //#define QB_TRACKING
 //#define KICKER_PERIPHERALS  //uncomment for special Kicker features
 //#define RECEIVER_PERIPHERALS  
-#define LED_STRIP       //uncomment for LED functionality
-#define TACKLE          //uncomment for tackle sensor functionality
+//#define LED_STRIP       //uncomment for LED functionality
+//#define TACKLE          //uncomment for tackle sensor functionality
 //#define ROTATION_LOCK
+
+//#define CIM_MOTOR
+//#define _775_MOTOR
+//#define BANEBOTS_MOTOR
+
+//#define BAG_MOTOR
+
+//#define CIM_KICKER
+
+
 /*
    Vesion History
    1.0.0 - AARON ROGGOW - adding pre-existant functionality for basic drivetrain, omniwheel drivetrain, center, qb, and kicker, and calibration and kids mode
@@ -44,6 +54,7 @@ int inverting = 0;              //Sets inverting to 0
    1.0.5 - Jacob Gehring
    1.0.6 - Julia Jenks - adjusted LEDs to function green for idle, red for tackled, and blue for non-ball carriers
                          commented code  
+   1.0.7 - William Sullivan - added defines to fix compatability with bag motors
  
    Controls...
    SELECT - enter/exit CALIBRATION MODE - note, will exit into normal drive mode
@@ -130,8 +141,15 @@ int inverting = 0;              //Sets inverting to 0
   /*  these are to reverse the motor direction if a motor is wired backwards.
    *  In almost every case, it would be better to fix the wiring than to change this in code
    */
-  #define LEFT_MOTOR_REVERSE    -1     
-  #define RIGHT_MOTOR_REVERSE   1     
+   
+  #if defined(BAG_MOTOR)
+	#define LEFT_MOTOR_REVERSE    1     
+	#define RIGHT_MOTOR_REVERSE   -1     
+  #endif
+  #if defined (_775_MOTOR) || defined(CIM_MOTOR) || defined(BANEBOTS_MOTOR)
+	#define LEFT_MOTOR_REVERSE    -1     
+	#define RIGHT_MOTOR_REVERSE   1 
+  #endif
    
   #define LEFT_MOTOR            9     // left motor is wired to pin 9
   #define RIGHT_MOTOR           10    // right motor is wired to pin 10
@@ -239,8 +257,14 @@ int throwOffset = 0;                //used to adjust strength of cross and circl
 #ifdef KICKER_PERIPHERALS
   #define KICKER_MOTOR          5     // Kicker motor is wired to pin 5
   //these are the speeds for kicking and reload the kicker foot
-  #define KICKER_POWER          175   
-  #define KICKER_RELOAD         85
+  #ifndef CIM_KICKER
+	#define KICKER_POWER          175   
+	#define KICKER_RELOAD         85
+  #endif
+  #ifdef CIM_KICKER
+	#define KICKER_POWER          5
+	#define KICKER_RELOAD         95
+  #endif
   Servo kicker;                       // Define motor object for the kicker motor
 #endif
  
@@ -953,6 +977,10 @@ void cameraCapture()
     data_buf[i] = Wire.read();
     i++;
   }
+  
+  // This appears to be stolen from here https://www.dfrobot.com/wiki/index.php/Positioning_ir_camera
+  // also here 							 https://blog.squix.org/2016/05/esp8266-peripherals-indoor-positioning-with-ir-camera.html
+  
   
   CamX[0] = data_buf[1];
   CamY[0] = data_buf[2];
