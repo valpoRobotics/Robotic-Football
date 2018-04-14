@@ -2,18 +2,33 @@
 /*
    THE ALL-IN-ONE-PACKAGE - Robotic Football Edition!!!
    
-   
-   
-   
-   
-   
-   
-   
-   
    Enable and disable the desired features here.
    There is error handling below for if things are enabled/disabled that shouldn't be.
    Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
 
+*/
+/*
+Warning if you are attempting to use I2C Devices on an arduino other than a mega/mega adk
+you need to connect a resistor between operating voltage (usually either 5V or 3.3V) and SDA
+and a second resistor between operating voltage and SCL
+
+Drawing bellow
+keywords: Leonardo Uno I2C IIC IR GYRO
+    
+     VCC______
+	|    |
+	|    |
+	\    \
+	 \    \
+	 /    /
+	/    /
+	\    \
+	 \    \
+	 /    /
+	/    /
+	|    |
+	|    |
+	SDA  SCL
 */
       
 int driveState = EEPROM.read(0); //Reads value from the first value form the EEPROM
