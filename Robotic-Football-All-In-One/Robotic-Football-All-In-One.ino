@@ -2,14 +2,6 @@
 /*
    THE ALL-IN-ONE-PACKAGE - Robotic Football Edition!!!
    
-   
-   
-   
-   
-   
-   
-   
-   
    Enable and disable the desired features here.
    There is error handling below for if things are enabled/disabled that shouldn't be.
    Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
@@ -19,7 +11,7 @@
 int driveState = EEPROM.read(0); //Reads value from the first value form the EEPROM
 int inverting = 0;              //Sets inverting to 0
  
-//#define BASIC_DRIVETRAIN    //uncomment for 2 drive wheels
+#define BASIC_DRIVETRAIN    //uncomment for 2 drive wheels
 //#define DUAL_MOTORS
 //#define LR_TACKLE_PERIPHERALS         //uncomment for special handicap for the tackles
 //#define OMNIWHEEL_DRIVETRAIN  //uncomment for omniwheel robots
@@ -125,8 +117,18 @@ int inverting = 0;              //Sets inverting to 0
  
 #ifdef LED_STRIP
   #define RED_LED         11          //Red LED control is wired to pin 11
+ 
   #define GREEN_LED       12          //Green LED control is wired to pin 12
   #define BLUE_LED        13          //Blue LED control is wired to pin 13
+ 
+  #define ALUMNI_TEAM  0x00
+  #define STUDENT_TEAM 0x01
+
+  int team;
+  
+  int ballCarrierColor;
+  int lineManColor;
+  
 #endif
  
 #ifdef TACKLE
@@ -141,12 +143,12 @@ int inverting = 0;              //Sets inverting to 0
    */
    
   #if defined(BAG_MOTOR)
-	#define LEFT_MOTOR_REVERSE    1     
-	#define RIGHT_MOTOR_REVERSE   -1     
+  #define LEFT_MOTOR_REVERSE    1     
+  #define RIGHT_MOTOR_REVERSE   -1     
   #endif
   #if defined (_775_MOTOR) || defined(CIM_MOTOR) || defined(BANEBOTS_MOTOR)
-	#define LEFT_MOTOR_REVERSE    -1     
-	#define RIGHT_MOTOR_REVERSE   1 
+  #define LEFT_MOTOR_REVERSE    -1     
+  #define RIGHT_MOTOR_REVERSE   1 
   #endif
    
   #define LEFT_MOTOR            9     // left motor is wired to pin 9
@@ -286,7 +288,9 @@ USBHub Hub1(&Usb);
 BTD Btd(&Usb);
 PS3BT PS3(&Btd);
  
-void setup() {
+void setup() {  
+  //Begin Serial Communications
+  Serial.begin(115200);  
 #ifdef BASIC_DRIVETRAIN
   /* These lines are attaching the motor objects to their output pins on the arduino
    * 1000, 2000 refers to the minimum and maximum pulse widths to send to the motors (AKA full forward/reverse)
@@ -325,6 +329,21 @@ void setup() {
 #endif
  
 #ifdef LED_STRIP
+  team = EEPROM.read(2);
+  if (team != ALUMNI_TEAM && team != STUDENT_TEAM) {   //If the EPPROM does not contain a team number it defaults to student team
+  EEPROM.write(2, STUDENT_TEAM);
+  team = STUDENT_TEAM;
+  }
+  if (team == ALUMNI_TEAM) {
+    ballCarrierColor = GREEN_LED;
+    lineManColor     = BLUE_LED;    
+  } else if (team == STUDENT_TEAM) {
+    ballCarrierColor = BLUE_LED;
+    lineManColor     = GREEN_LED;
+  } 
+  Serial.println("TEAM:");
+  Serial.println(team);
+
   //define pins for LEDs as outputs
   pinMode(BLUE_LED,  OUTPUT);
   pinMode(GREEN_LED, OUTPUT);
@@ -369,8 +388,7 @@ void setup() {
 #endif
  
  
-  //Begin Serial Communications
-  Serial.begin(115200);
+  
   if (Usb.Init() == -1)                 // this is for an error message with USB connections
   {
     Serial.print(F("\r\nOSC did not start"));
@@ -392,6 +410,8 @@ void setup() {
  
 void loop()
 {
+  //Serial.println("TEAM:");
+  //Serial.println(team);
   Usb.Task();                           // This updates the input from the PS3 controller
  
   if (PS3.PS3Connected)                 // This only lets the program run if the PS3
@@ -443,6 +463,26 @@ void loop()
     }
  
 #ifdef LED_STRIP
+      if (PS3.getButtonClick(RIGHT)) //Switch between allumni team and student team. 0 is arcade 1 is tank
+    {  
+      if (PS3.getButtonPress(R1)) {    
+        Serial.println("ALUMNI_TEAM");
+        EEPROM.write(2, ALUMNI_TEAM);
+        team = ALUMNI_TEAM;
+        ballCarrierColor = BLUE_LED;
+        lineManColor  = GREEN_LED; 
+      }
+    } 
+    if (PS3.getButtonClick(LEFT)) //Switch between tank drive and arcade mode. 0 is arcade 1 is tank
+    {   
+      if (PS3.getButtonPress(R1)) {   
+        Serial.println("STUDENT_TEAM");
+        EEPROM.write(2, STUDENT_TEAM);
+        team = STUDENT_TEAM;
+        ballCarrierColor = GREEN_LED;
+        lineManColor  = BLUE_LED;        
+      }      
+    }
 #ifdef TACKLE
     // NORMAL OPERATION MODE
     // for the if statement for whether or not
@@ -452,8 +492,8 @@ void loop()
     if (tackled)
     {
       digitalWrite(RED_LED, HIGH);
-      digitalWrite(GREEN_LED, LOW);
-      digitalWrite(BLUE_LED, LOW);
+      digitalWrite(ballCarrierColor, LOW);
+      digitalWrite(lineManColor, LOW);
       if (!hasIndicatedTackle)                    //Detects if the controller had vibrated when tackled
       {
         PS3.setRumbleOn(10, 255, 10, 255);
@@ -463,21 +503,22 @@ void loop()
     else
     {
       digitalWrite(RED_LED,  LOW);
-      digitalWrite(BLUE_LED, LOW);
-      digitalWrite(GREEN_LED, HIGH);
-      if (hasIndicatedTackle)hasIndicatedTackle = false;
+      digitalWrite(lineManColor, LOW);
+      digitalWrite(ballCarrierColor, HIGH);
+      if (hasIndicatedTackle) hasIndicatedTackle = false;
     }
 #else
-    digitalWrite(GREEN_LED, LOW);
-    digitalWrite(BLUE_LED, HIGH);
+    digitalWrite(ballCarrierColor, LOW);
+    digitalWrite(lineManColor, HIGH);
     digitalWrite(RED_LED, LOW);
 #endif
 #endif
     if (state == DRIVING || state == KID)
     {
       if (PS3.getButtonClick(SELECT)) //Switch between tank drive and arcade mode. 0 is arcade 1 is tank
-      {
+      {        
         if (PS3.getButtonPress(L1)) {
+          Serial.println("L1 SELECT PRESSED");
           if (driveState == 0) {
             EEPROM.write(0, 1);
             driveState = 1;
@@ -577,8 +618,8 @@ void loop()
  
 #ifdef LED_STRIP
       digitalWrite(RED_LED,   LOW);
-      digitalWrite(GREEN_LED, LOW);
-      digitalWrite(BLUE_LED, HIGH);
+      digitalWrite(ballCarrierColor, LOW);
+      digitalWrite(lineManColor, HIGH);
 #endif
       PS3.moveSetRumble(64);
       PS3.setRumbleOn(10, 255, 10, 255); // vibrate!
@@ -590,8 +631,8 @@ void loop()
     eStop();
 #ifdef LED_STRIP
     digitalWrite(RED_LED,   LOW);
-    digitalWrite(GREEN_LED, LOW);
-    digitalWrite(BLUE_LED, HIGH);
+    digitalWrite(ballCarrierColor, LOW);
+    digitalWrite(lineManColor, HIGH);
 #endif
   }
 #ifdef BASIC_DRIVETRAIN
@@ -971,7 +1012,7 @@ void cameraCapture()
   }
   
   // This appears to be stolen from here https://www.dfrobot.com/wiki/index.php/Positioning_ir_camera
-  // also here 							 https://blog.squix.org/2016/05/esp8266-peripherals-indoor-positioning-with-ir-camera.html
+  // also here               https://blog.squix.org/2016/05/esp8266-peripherals-indoor-positioning-with-ir-camera.html
   
   
   CamX[0] = data_buf[1];
@@ -1000,13 +1041,13 @@ void cameraCapture()
 
   // DETERMINE IF WE CAN SEE THE WR
   isWRSeen = false;
-  //digitalWrite(BLUE_LED, LOW);
+  //digitalWrite(lineManColor, LOW);
   for (i=0; i < 4; i++)
   {
     if (CamX[i] != 1023 && CamX[i] != 0)
     {
       isWRSeen = true;
-      //digitalWrite(BLUE_LED,HIGH);
+      //digitalWrite(lineManColor,HIGH);
       if (numGoodPoints == 0)
       {
         firstPoint = i;
@@ -1113,24 +1154,24 @@ void flashLed()
 {
   //flash the leds
   digitalWrite(RED_LED, LOW);
-  digitalWrite(BLUE_LED, LOW);
-  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(lineManColor, LOW);
+  digitalWrite(ballCarrierColor, HIGH);
   delay(300);
   digitalWrite(RED_LED, LOW);
-  digitalWrite(GREEN_LED, LOW);
-  digitalWrite(BLUE_LED, HIGH);
+  digitalWrite(ballCarrierColor, LOW);
+  digitalWrite(lineManColor, HIGH);
   delay(300);
-  digitalWrite(BLUE_LED, LOW);
-  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(lineManColor, LOW);
+  digitalWrite(ballCarrierColor, LOW);
   digitalWrite(RED_LED, HIGH);
   delay(300);
   digitalWrite(RED_LED, LOW);
-  digitalWrite(BLUE_LED, LOW);
-  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(lineManColor, LOW);
+  digitalWrite(ballCarrierColor, HIGH);
   delay(300);
   digitalWrite(RED_LED, LOW);
-  digitalWrite(GREEN_LED, LOW);
-  digitalWrite(BLUE_LED, HIGH);
+  digitalWrite(ballCarrierColor, LOW);
+  digitalWrite(lineManColor, HIGH);
 }
 #endif
  
