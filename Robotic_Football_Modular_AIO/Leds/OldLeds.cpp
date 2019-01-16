@@ -1,7 +1,7 @@
 
-#define RED_LED         A0          //Red LED control is wired to pin A0
-#define GREEN_LED       A1          //Green LED control is wired to pin A1
-#define BLUE_LED        A2          //Blue LED control is wired to pin A2
+#define RED_LED         11          //Red LED control is wired to pin 11
+#define GREEN_LED       12          //Green LED control is wired to pin 12
+#define BLUE_LED        13          //Blue LED control is wired to pin 13
 
 
 void ledsSetup(){

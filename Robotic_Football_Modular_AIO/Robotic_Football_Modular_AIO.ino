@@ -1,15 +1,18 @@
 #include <PS3BT.h>
 #include <usbhub.h>
+
+//===========Uncomment a LED===========================
 #include "Leds/Leds.cpp"
+//#include "Leds/OldLeds.cpp"
 
 //===========Uncomment a drive train===================
 #include "DriveTrains/BasicDrive.cpp"
 //#include "DriveTrains/SquareOmniDrive.cpp"
 
-//===========Uncomment for tackle sensor================
-//#define TACKLE
+//===========Uncomment for tackle sensor===============
+#define TACKLE
 
-//===========Uncomment to choose a Peripheral===========
+//===========Uncomment to choose a Peripheral==========
 //#include "Peripherals/CenterPeripheral.cpp" #define PERIPHERALS
 //#include "Peripherals/QBPeripheral.cpp"     #define PERIPHERALS
 //#include "Peripherals/KickerPeripheral.cpp" #define PERIPHERALS
@@ -27,6 +30,7 @@ int motorType = 1;
 
 #define TACKLE_INPUT    6           // Tackle sensor is wired to pin 6
 bool hasIndicated = false;
+bool stayTackled = false;
 int handicap = 3;
 bool kidsMode = false;
 int newconnect = 0;
@@ -90,8 +94,8 @@ void loop() {
       kidsMode = false;
     } else if (PS3.getButtonPress(R2)) {
       handicap = 1;
-    } else if (PS3.getButtonPress(L2)){
-      handicap = 6;  
+    } else if (PS3.getButtonPress(L2)) {
+      handicap = 6;
     } else {
       handicap = 3;
     }
@@ -102,19 +106,28 @@ void loop() {
     // NORMAL OPERATION MODE
     // for the if statement for whether or not
     // tackle is enabled. cool stuff
-
+    if (PS3.getButtonClick(LEFT)) {
+      if (stayTackled == true) {
+        stayTackled = false;
+      } else {
+        stayTackled = true;
+      }
+      PS3.setRumbleOn(30, 255, 30, 255);
+    }
     if (!digitalRead(TACKLE_INPUT))
     {
       red();
-      if (!hasIndicated){
+      if (!hasIndicated) {
         PS3.setRumbleOn(10, 255, 10, 255);
         hasIndicated = true;
       }
     }
     else
     {
-      hasIndicated = false;
-      green();
+      if (stayTackled == false) {
+        hasIndicated = false;
+        green();
+      }
     }
 #endif
     //===============================================================================================
