@@ -1,7 +1,7 @@
 #include <Servo.h>
 Servo leftMotor, rightMotor;        // Define motor objects
-static int drive = 0;                      // Initial speed before turning calculations
-static int turn = 0;                       // Turn is adjustment to drive for each motor separately to create turns
+static int drive = 0;               // Initial speed before turning calculations
+static int turn = 0;                // Turn is adjustment to drive for each motor separately to create turns
 static int motorDirection = 1;
 static int xInput, yInput, throttleL, throttleR;
 #define LEFT_MOTOR            9     // left motor is wired to pin 9

@@ -49,6 +49,7 @@ void setup() {// This is stuff for connecting the PS3 to USB.
   peripheralSetup();//Call the peripheral setup
 #endif
 
+
   int newconnect = 0;         // Variable(boolean) for connection to ps3, also activates rumble
 
 #ifdef TACKLE
@@ -84,10 +85,10 @@ void loop() {
     leftY = map(PS3.getAnalogHat(LeftHatY), 0, 255, -90, 90);     // Recieves PS3
     rightX = map(PS3.getAnalogHat(RightHatX), 0, 255, -90, 90);   // Recieves PS3
     rightY = map(PS3.getAnalogHat(RightHatY), 0, 255, -90, 90);   // Recieves PS3
-    if (abs(leftX) < 8) leftX = 0;                                // deals with the stickiness
-    if (abs(leftY) < 8) leftY = 0;
-    if (abs(rightX) < 8) rightX = 0;
-    if (abs(rightY) < 8) rightY = 0;
+    if (abs(leftX) < 10) leftX = 0;                                // deals with the stickiness
+    if (abs(leftY) < 10) leftY = 0;
+    if (abs(rightX) < 10) rightX = 0;
+    if (abs(rightY) < 10) rightY = 0;
     //======================Specify the handicap================================
     if (PS3.getButtonClick(START) && (kidsMode == false)) {
       handicap = 7;
