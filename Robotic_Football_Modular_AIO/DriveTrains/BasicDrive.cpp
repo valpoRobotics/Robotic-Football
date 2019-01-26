@@ -17,7 +17,7 @@ void driveSetup(int motorType) {
   leftMotor.writeMicroseconds(1500);
   rightMotor.writeMicroseconds(1500);
   motorDirection = motorType;
-#define MAX_DRIVE             84    // limited because of issues with calibrating victors to full 0-180 range
+#define MAX_DRIVE             90    // limited because of issues with calibrating victors to full 0-180 range
 }
 
 void driveCtrl(int handicap, int leftX, int leftY, int rightX, int rightY)

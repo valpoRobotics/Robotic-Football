@@ -45,6 +45,9 @@ void setup() {// This is stuff for connecting the PS3 to USB.
   driveSetup(motorType);//Setup the drive train
   ledsSetup();          //Setup the leds
   flashLeds();          //flash the leds
+#ifdef PERIPHERALS
+  peripheralSetup();//Call the peripheral setup
+#endif
 
   int newconnect = 0;         // Variable(boolean) for connection to ps3, also activates rumble
 
@@ -92,7 +95,7 @@ void loop() {
     } else if (PS3.getButtonClick(START) && (kidsMode == true)) {
       handicap = 3;
       kidsMode = false;
-    } else if (PS3.getButtonPress(R2)) {
+    } else if (PS3.getButtonPress(R2) && (kidsMode == false)) {
       handicap = 1;
     } else if (PS3.getButtonPress(L2)) {
       handicap = 6;
