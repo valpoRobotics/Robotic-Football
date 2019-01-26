@@ -13,7 +13,7 @@ Servo qbThrower;
 
 
 void peripheralSetup(){
-	qbThrower.attach(QB_THROWER);
+	qbThrower.attach(QB_THROWER, 1000, 2000);
 	qbThrower.writeMicroseconds(1500);
 }
   

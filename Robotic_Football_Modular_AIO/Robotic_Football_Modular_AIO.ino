@@ -6,16 +6,17 @@
 //#include "Leds/OldLeds.cpp"
 
 //===========Uncomment a drive train===================
-#include "DriveTrains/BasicDrive.cpp"
-//#include "DriveTrains/SquareOmniDrive.cpp"
+//#include "DriveTrains/BasicDrive.cpp"
+#include "DriveTrains/SquareOmniDrive.cpp"
 
 //===========Uncomment for tackle sensor===============
 #define TACKLE
 
 //===========Uncomment to choose a Peripheral==========
-//#include "Peripherals/CenterPeripheral.cpp" #define PERIPHERALS
-//#include "Peripherals/QBPeripheral.cpp"     #define PERIPHERALS
-//#include "Peripherals/KickerPeripheral.cpp" #define PERIPHERALS
+#define PERIPHERAL
+//#include "Peripherals/CenterPeripheral.cpp"
+#include "Peripherals/QBPeripheral.cpp" 
+//#include "Peripherals/KickerPeripheral.cpp"
 
 //==========Uncomment if not using bag motors==========
 //#define OldMotors
@@ -45,7 +46,8 @@ void setup() {// This is stuff for connecting the PS3 to USB.
   driveSetup(motorType);//Setup the drive train
   ledsSetup();          //Setup the leds
   flashLeds();          //flash the leds
-#ifdef PERIPHERALS
+  
+#ifdef PERIPHERAL
   peripheralSetup();//Call the peripheral setup
 #endif
 
@@ -85,10 +87,10 @@ void loop() {
     leftY = map(PS3.getAnalogHat(LeftHatY), 0, 255, -90, 90);     // Recieves PS3
     rightX = map(PS3.getAnalogHat(RightHatX), 0, 255, -90, 90);   // Recieves PS3
     rightY = map(PS3.getAnalogHat(RightHatY), 0, 255, -90, 90);   // Recieves PS3
-    if (abs(leftX) < 10) leftX = 0;                                // deals with the stickiness
-    if (abs(leftY) < 10) leftY = 0;
-    if (abs(rightX) < 10) rightX = 0;
-    if (abs(rightY) < 10) rightY = 0;
+    if (abs(leftX) < 8) leftX = 0;                                // deals with the stickiness
+    if (abs(leftY) < 8) leftY = 0;
+    if (abs(rightX) < 8) rightX = 0;
+    if (abs(rightY) < 8) rightY = 0;
     //======================Specify the handicap================================
     if (PS3.getButtonClick(START) && (kidsMode == false)) {
       handicap = 7;
@@ -138,7 +140,7 @@ void loop() {
 
     driveCtrl(handicap, leftX, leftY, rightX, rightY);//Drive the drive train
 
-#ifdef PERIPHERALS
+#ifdef PERIPHERAL
     peripheral(PS3);//Call the peripheral
 #endif
   }
