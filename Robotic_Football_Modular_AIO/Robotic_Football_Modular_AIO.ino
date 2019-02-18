@@ -6,16 +6,16 @@
 //#include "Leds/OldLeds.cpp"
 
 //===========Uncomment a drive train===================
-//#include "DriveTrains/BasicDrive.cpp"
-#include "DriveTrains/SquareOmniDrive.cpp"
+#include "DriveTrains/BasicDrive.cpp"
+//#include "DriveTrains/SquareOmniDrive.cpp"
 
 //===========Uncomment for tackle sensor===============
 #define TACKLE
 
 //===========Uncomment to choose a Peripheral==========
-#define PERIPHERAL
+//#define PERIPHERAL
 //#include "Peripherals/CenterPeripheral.cpp"
-#include "Peripherals/QBPeripheral.cpp" 
+//#include "Peripherals/QBPeripheral.cpp"
 //#include "Peripherals/KickerPeripheral.cpp"
 
 //==========Uncomment if not using bag motors==========
@@ -46,7 +46,7 @@ void setup() {// This is stuff for connecting the PS3 to USB.
   driveSetup(motorType);//Setup the drive train
   ledsSetup();          //Setup the leds
   flashLeds();          //flash the leds
-  
+
 #ifdef PERIPHERAL
   peripheralSetup();//Call the peripheral setup
 #endif
@@ -92,18 +92,28 @@ void loop() {
     if (abs(rightX) < 8) rightX = 0;
     if (abs(rightY) < 8) rightY = 0;
     //======================Specify the handicap================================
-    if (PS3.getButtonClick(START) && (kidsMode == false)) {
-      handicap = 7;
-      kidsMode = true;
-    } else if (PS3.getButtonClick(START) && (kidsMode == true)) {
-      handicap = 3;
-      kidsMode = false;
-    } else if (PS3.getButtonPress(R2) && (kidsMode == false)) {
-      handicap = 1;
-    } else if (PS3.getButtonPress(L2)) {
-      handicap = 6;
-    } else {
-      handicap = 3;
+    if (PS3.getButtonClick(START)) { //Toggle in and out of kidsmode
+      if (kidsMode == true) {
+        kidsMode = false;
+        handicap = 3;
+        PS3.setLedRaw(1);               // ON OFF OFF ON
+        PS3.setRumbleOn(5, 255, 5, 255);// vibrate both, then left, then right
+      } else if (kidsMode == false) {
+        kidsMode = true;
+        handicap = 7;
+        PS3.setLedRaw(9);               // OFF OFF OFF ON
+        PS3.setRumbleOn(5, 255, 5, 255);// vibrate both, then left, then right
+      }
+    }
+    if (kidsMode == false) {
+      if (PS3.getButtonPress(R2)) { //Boost
+        handicap = 1;
+      }
+      else if (PS3.getButtonPress(L2)) { //Slow Down
+        handicap = 6;
+      } else {
+        handicap = 3;
+      }
     }
     //==========================================================================
 
