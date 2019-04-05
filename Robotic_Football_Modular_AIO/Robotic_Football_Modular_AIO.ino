@@ -73,7 +73,11 @@ void loop() {
   {
     if (newconnect == 0)                // this is the vibration that you feel when you first connect
     {
+#ifdef TACKLE
       green();
+#else
+      blue();
+#endif
       PS3.moveSetRumble(64);
       PS3.setRumbleOn(100, 255, 100, 255); //VIBRATE!!!
       newconnect++;
