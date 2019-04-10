@@ -7,6 +7,7 @@
 
 //===========Uncomment a drive train===================
 #include "DriveTrains/BasicDrive.cpp"
+//#include "DriveTrains/CenterDrive.cpp"
 //#include "DriveTrains/SquareOmniDrive.cpp"
 
 //===========Uncomment for tackle sensor===============
@@ -14,6 +15,7 @@
 
 //===========Uncomment to choose a Peripheral==========
 //#define PERIPHERAL
+//#include "Peripherals/WRPeriopheral.cpp"
 //#include "Peripherals/CenterPeripheral.cpp"
 //#include "Peripherals/QBPeripheral.cpp"
 //#include "Peripherals/KickerPeripheral.cpp"

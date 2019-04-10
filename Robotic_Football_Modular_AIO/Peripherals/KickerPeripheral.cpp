@@ -4,8 +4,8 @@
 
 #define KICKER_MOTOR          5     	// Kicker motor is wired to pin 5
 										//these are the speeds for kicking and reload the kicker foot
-#define KICKER_POWER          175   
-#define KICKER_RELOAD         85
+#define KICKER_POWER          2000   
+#define KICKER_RELOAD         1000
 Servo kicker;                       	// Define motor object for the kicker motor
 
 void peripheralSetup(){
@@ -14,7 +14,11 @@ void peripheralSetup(){
 }
   
 void peripheral(PS3BT PS3){
-	if (PS3.getButtonPress(CROSS)) kicker.write(KICKER_POWER);
-	else if (PS3.getButtonPress(TRIANGLE)) kicker.write(KICKER_RELOAD);
-	else kicker.writeMicroseconds(1500);
+	if (PS3.getButtonPress(CROSS)){
+		kicker.writeMicroseconds(KICKER_POWER);
+	}else if (PS3.getButtonPress(TRIANGLE)){
+		kicker.writeMicroseconds(KICKER_RELOAD);
+	}else{
+		kicker.writeMicroseconds(1500);
+	}
 }

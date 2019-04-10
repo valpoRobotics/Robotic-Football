@@ -12,6 +12,9 @@ void peripheralSetup(){
 }
   
 void peripheral(PS3BT PS3){
-	if (PS3.getButtonClick(TRIANGLE)) centerRelease.write(CENTER_RELEASE_UP);
-	else if (PS3.getButtonClick(CROSS)) centerRelease.write(CENTER_RELEASE_DOWN);
+	if (PS3.getButtonClick(TRIANGLE)){
+		centerRelease.write(CENTER_RELEASE_UP);
+	}else if (PS3.getButtonClick(CROSS)){
+		centerRelease.write(CENTER_RELEASE_DOWN);
+	}
 }
