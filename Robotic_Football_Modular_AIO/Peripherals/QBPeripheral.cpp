@@ -7,7 +7,7 @@
 #define CIRCLE_THROW          125
 #define CROSS_THROW           108
 #define SQUARE_THROW          102
-#define RELOAD_THROW          88
+#define RELOAD_THROW          80
 int throwOffset = 0;                //used to adjust strength of cross and circle throws
 Servo qbThrower;
 

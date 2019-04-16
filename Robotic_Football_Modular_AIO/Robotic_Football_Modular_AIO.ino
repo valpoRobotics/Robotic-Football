@@ -6,7 +6,7 @@
 //#include "Leds/OldLeds.cpp"
 
 //===========Uncomment a drive train===================
-#include "DriveTrains/BasicDrive.cpp"
+//#include "DriveTrains/BasicDrive.cpp"
 //#include "DriveTrains/CenterDrive.cpp"
 //#include "DriveTrains/SquareOmniDrive.cpp"
 
@@ -15,7 +15,7 @@
 
 //===========Uncomment to choose a Peripheral==========
 //#define PERIPHERAL
-//#include "Peripherals/WRPeriopheral.cpp"
+//#include "Peripherals/WRPeripheral.cpp"
 //#include "Peripherals/CenterPeripheral.cpp"
 //#include "Peripherals/QBPeripheral.cpp"
 //#include "Peripherals/KickerPeripheral.cpp"
