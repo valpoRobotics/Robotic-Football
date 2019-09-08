@@ -22,7 +22,6 @@ void driveSetup(int motorType) {
 
 void driveCtrl(int handicap, int leftX, int leftY, int rightX, int rightY)
 {
-  rightX = rightX/2;
   if ((rightY == 0) && (leftX == 0))
   { // if no input this should ensure that
     // the motors actually stop, and skip the rest
