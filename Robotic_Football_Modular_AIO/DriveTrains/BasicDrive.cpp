@@ -4,6 +4,7 @@ static int drive = 0;               // Initial speed before turning calculations
 static int turn = 0;                // Turn is adjustment to drive for each motor separately to create turns
 static int motorDirection = 1;
 static int xInput, yInput, throttleL, throttleR;
+static float rightAdjust = 1.0;
 #define LEFT_MOTOR            9     // left motor is wired to pin 9
 #define RIGHT_MOTOR           10    // right motor is wired to pin 10
 
@@ -39,7 +40,7 @@ void driveCtrl(int handicap, int leftX, int leftY, int rightX, int rightY)
   throttleL = motorDirection * ((drive - turn) / handicap);
   // This is the final variable that
   // decides motor speed.
-  throttleR = -1 * motorDirection * ((drive + turn) / handicap );
+  throttleR = -1 * motorDirection * ((drive + turn) / handicap) * rightAdjust;
 
   if (throttleL > MAX_DRIVE) throttleL = MAX_DRIVE;
   else if (throttleL < -MAX_DRIVE)throttleL = -MAX_DRIVE;
@@ -48,6 +49,14 @@ void driveCtrl(int handicap, int leftX, int leftY, int rightX, int rightY)
 
   leftMotor.write(throttleL + 90);   // Sending values to the speed controllers
   rightMotor.write(throttleR + 90);
+}
+
+void motorAdjust(float adjust){
+  if ((adjust + rightAdjust) > 0.5 && (adjust + rightAdjust) < 1.5){
+    rightAdjust = rightAdjust + adjust;
+  }
+  Serial.print(rightAdjust);
+
 }
 
 void driveStop()

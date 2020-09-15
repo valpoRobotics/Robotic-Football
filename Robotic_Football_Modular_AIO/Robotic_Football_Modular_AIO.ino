@@ -6,7 +6,7 @@
 //#include "Leds/OldLeds.cpp"
 
 //===========Uncomment a drive train===================
-//#include "DriveTrains/BasicDrive.cpp"
+#include "DriveTrains/BasicDrive.cpp"
 //#include "DriveTrains/CenterDrive.cpp"
 //#include "DriveTrains/SquareOmniDrive.cpp"
 
@@ -122,7 +122,15 @@ void loop() {
       }
     }
     //==========================================================================
-
+    //===============================Adjust motors==============================
+    if (PS3.getButtonClick(LEFT)) { //Toggle in and out of kidsmode
+      motorAdjust(0.025);
+      Serial.println("Left button clicked");
+    }
+    if (PS3.getButtonClick(RIGHT)) { //Toggle in and out of kidsmode
+      motorAdjust(-0.025);
+      Serial.println("right button clicked");
+    }
     //=================================Tackle Sensor================================
 #ifdef TACKLE
     // NORMAL OPERATION MODE
