@@ -1,5 +1,5 @@
-#include <PS3BT.h>
-#include <usbhub.h>
+#include "src/USB_Host_Shield_Library_20/PS3BT.h"
+#include "src/USB_Host_Shield_Library_20/usbhub.h"
 
 //===========Uncomment a LED===========================
 #include "Leds/Leds.cpp"
