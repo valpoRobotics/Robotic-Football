@@ -1,6 +1,6 @@
 #include <Servo.h>
-#include <PS3BT.h>
-#include <usbhub.h>
+#include "src/USB_Host_Shield_Library_20/PS3BT.h"
+#include "src/USB_Host_Shield_Library_20/usbhub.h"
 #define TARGET_PIN_ONE        13     // the ball release servo is wired to pin 5
 #define TARGET_PIN_TWO        12     // the ball release servo is wired to pin 5
 #define TARGET_RAISED_POSITION   0   // these are the angles between 0 and 180 to set servo for releasing and holding the ball

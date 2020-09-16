@@ -1,6 +1,6 @@
 #include <Servo.h>
-#include <PS3BT.h>
-#include <usbhub.h>
+#include "src/USB_Host_Shield_Library_20/PS3BT.h"
+#include "src/USB_Host_Shield_Library_20/usbhub.h"
 
 #define KICKER_MOTOR          5     	// Kicker motor is wired to pin 5
 										//these are the speeds for kicking and reload the kicker foot
